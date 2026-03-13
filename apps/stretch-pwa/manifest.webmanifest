@@ -1,0 +1,24 @@
+{
+  "name": "Stretch Flow",
+  "short_name": "StretchFlow",
+  "description": "Daily stretch routines and streaks",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f8f3",
+  "theme_color": "#12342f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
