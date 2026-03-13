@@ -9,14 +9,18 @@ const defaultState = {
   },
 };
 
+function cloneDefaultState() {
+  return JSON.parse(JSON.stringify(defaultState));
+}
+
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(defaultState);
+    if (!raw) return cloneDefaultState();
 
     const parsed = JSON.parse(raw);
     return {
-      ...structuredClone(defaultState),
+      ...cloneDefaultState(),
       ...parsed,
       settings: {
         ...defaultState.settings,
@@ -33,5 +37,5 @@ export function saveState(state) {
 }
 
 export function getDefaultState() {
-  return structuredClone(defaultState);
+  return cloneDefaultState();
 }

@@ -84,7 +84,7 @@ function render({ completedCount, completionRatio }) {
               <li class="stretch-item ${checked ? 'checked' : ''}">
                 <button class="touch-btn" data-action="toggle-stretch" data-id="${item.id}">
                   <span>
-                    <strong>${item.name}</strong>
+                    <strong>${escapeHtml(item.name)}</strong>
                     <small>${item.durationSec}s${item.sideAware ? ' · each side' : ''}</small>
                   </span>
                   <span class="pill">${checked ? 'Done' : 'Mark'}</span>
@@ -115,7 +115,7 @@ function render({ completedCount, completionRatio }) {
                 (item) => `
               <label class="choice-chip">
                 <input type="checkbox" name="stretch" value="${item.id}" />
-                <span>${item.name}</span>
+                <span>${escapeHtml(item.name)}</span>
               </label>
             `
               )
@@ -130,10 +130,11 @@ function render({ completedCount, completionRatio }) {
           .map(
             (routine) => `
           <li>
-            <h3>${routine.name}</h3>
+            <h3>${escapeHtml(routine.name)}</h3>
             <p class="muted">${routine.stretchIds
               .map((id) => defaultStretchLibrary.find((stretch) => stretch.id === id)?.name)
               .filter(Boolean)
+              .map((name) => escapeHtml(name))
               .join(' · ')}</p>
           </li>
         `
@@ -256,4 +257,13 @@ function registerServiceWorker() {
 
 function capitalize(value) {
   return value ? value[0].toUpperCase() + value.slice(1) : '';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
