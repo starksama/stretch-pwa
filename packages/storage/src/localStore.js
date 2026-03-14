@@ -7,6 +7,7 @@ const defaultState = {
   guidedSession: null,
   settings: {
     healthSyncEnabled: false,
+    cueMode: 'vibration',
   },
 };
 

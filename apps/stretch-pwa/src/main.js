@@ -195,6 +195,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       </ul>
     </section>
 
+    ${renderSessionCueCard()}
     ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}
   `;
 
@@ -264,6 +265,29 @@ function renderGuidedSessionCard(guidedProgress) {
         <button class="ghost-btn" id="guided-skip">Skip</button>
         <button class="ghost-btn" id="guided-end">Finish now</button>
       </div>
+    </section>
+  `;
+}
+
+function renderSessionCueCard() {
+  const cueMode = state.settings.cueMode || 'vibration';
+  return `
+    <section class="card enter-up delay-3">
+      <header class="section-head">
+        <h2>Session Cues</h2>
+        <p class="muted">Feedback on stretch transitions</p>
+      </header>
+      <label class="stack-field">
+        Cue type
+        <select id="cue-mode">
+          <option value="off" ${cueMode === 'off' ? 'selected' : ''}>Off</option>
+          <option value="vibration" ${cueMode === 'vibration' ? 'selected' : ''}>Vibration</option>
+          <option value="sound" ${cueMode === 'sound' ? 'selected' : ''}>Sound</option>
+          <option value="both" ${cueMode === 'both' ? 'selected' : ''}>Vibration + Sound</option>
+        </select>
+      </label>
+      <button class="ghost-btn" id="cue-test">Test cue</button>
+      <p class="muted" id="cue-msg">Current mode: ${escapeHtml(cueMode)}</p>
     </section>
   `;
 }
@@ -426,6 +450,9 @@ function bindEvents() {
   const syncToggle = appRoot.querySelector('#sync-enabled');
   const syncButton = appRoot.querySelector('#sync-now');
   const syncMsg = appRoot.querySelector('#sync-msg');
+  const cueMode = appRoot.querySelector('#cue-mode');
+  const cueTest = appRoot.querySelector('#cue-test');
+  const cueMsg = appRoot.querySelector('#cue-msg');
 
   if (syncToggle) {
     syncToggle.addEventListener('change', () => {
@@ -457,6 +484,21 @@ function bindEvents() {
       } else {
         syncMsg.textContent = `Dry sync skipped (${result.reason}).`;
       }
+    });
+  }
+
+  if (cueMode) {
+    cueMode.addEventListener('change', () => {
+      state.settings.cueMode = cueMode.value;
+      saveState(state);
+      if (cueMsg) cueMsg.textContent = `Current mode: ${cueMode.value}`;
+    });
+  }
+
+  if (cueTest) {
+    cueTest.addEventListener('click', () => {
+      playCompletionCue(state.settings.cueMode);
+      if (cueMsg) cueMsg.textContent = `Cue test played (${state.settings.cueMode}).`;
     });
   }
 }
@@ -497,6 +539,7 @@ function completeGuidedStep() {
     ...result.completedStretchIds,
   ]);
   state.progressByDate[todayDateKey].completedStretchIds = [...merged];
+  playCompletionCue(state.settings.cueMode);
   state.guidedSession = result.nextSession ? { ...result.nextSession, isRunning: true } : null;
   persistAndRender();
 }
@@ -518,6 +561,38 @@ function formatTimer(totalSec) {
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${`${sec}`.padStart(2, '0')}`;
+}
+
+function playCompletionCue(cueMode) {
+  if (!cueMode || cueMode === 'off') return;
+
+  if ((cueMode === 'vibration' || cueMode === 'both') && typeof navigator.vibrate === 'function') {
+    navigator.vibrate([70, 30, 70]);
+  }
+
+  if (cueMode === 'sound' || cueMode === 'both') {
+    try {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const audioCtx = new AudioContextCtor();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gainNode.gain.value = 0.045;
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.12);
+      oscillator.onended = () => {
+        audioCtx.close().catch(() => {
+          // No-op cleanup failure.
+        });
+      };
+    } catch {
+      // No-op for browsers blocking autoplay/audio context.
+    }
+  }
 }
 
 function escapeHtml(value) {
