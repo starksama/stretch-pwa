@@ -167,6 +167,7 @@ const I18N = {
     resetSeedPack: 'Reset seed pack',
     useCachedPack: 'Use cached pack',
     clearCachedPack: 'Clear cache',
+    exportPack: 'Export current pack',
     currentActions: 'Current actions: {count}',
     difficultyMix: 'Difficulty mix: {mix}',
     loadingPack: 'Loading action pack...',
@@ -176,6 +177,7 @@ const I18N = {
     cacheReady: 'Cached pack ready ({source}).',
     cacheCleared: 'Cached pack removed.',
     noCacheAvailable: 'No cached pack available.',
+    exportedPack: 'Pack exported: {name}',
     packLoadFailed: 'Failed to load URL pack ({reason}). Kept current pack.',
     packInvalidFallback: 'Pack schema invalid. Kept current pack.',
     packInspectorTitle: 'Pack Inspector',
@@ -315,6 +317,7 @@ const I18N = {
     resetSeedPack: '重設為基礎動作包',
     useCachedPack: '使用快取動作包',
     clearCachedPack: '清除快取',
+    exportPack: '匯出目前動作包',
     currentActions: '目前動作數：{count}',
     difficultyMix: '難度分布：{mix}',
     loadingPack: '正在載入動作包...',
@@ -324,6 +327,7 @@ const I18N = {
     cacheReady: '快取動作包可用（{source}）。',
     cacheCleared: '已移除快取動作包。',
     noCacheAvailable: '目前沒有可用快取動作包。',
+    exportedPack: '已匯出動作包：{name}',
     packLoadFailed: 'URL 動作包載入失敗（{reason}），已保留目前內容。',
     packInvalidFallback: '動作包結構不符合規範，已保留目前內容。',
     packInspectorTitle: '動作包檢視',
@@ -702,6 +706,7 @@ function renderActionPackCard() {
       <div class="guided-actions">
         <button class="ghost-btn" id="pack-use-cache">${t('useCachedPack')}</button>
         <button class="ghost-btn" id="pack-clear-cache">${t('clearCachedPack')}</button>
+        <button class="ghost-btn" id="pack-export">${t('exportPack')}</button>
       </div>
       <p class="muted" id="pack-msg">${t('currentActions', { count: stretchLibrary.length })}</p>
       <p class="muted">${t('difficultyMix', { mix: difficultyMix })}</p>
@@ -1352,6 +1357,7 @@ function bindEvents() {
   const packFile = appRoot.querySelector('#pack-file');
   const packUseCache = appRoot.querySelector('#pack-use-cache');
   const packClearCache = appRoot.querySelector('#pack-clear-cache');
+  const packExport = appRoot.querySelector('#pack-export');
   const packMsg = appRoot.querySelector('#pack-msg');
   const packFilterDifficulty = appRoot.querySelector('#pack-filter-difficulty');
   const packFilterBody = appRoot.querySelector('#pack-filter-body');
@@ -1490,6 +1496,26 @@ function bindEvents() {
       saveState(state);
       if (packMsg) packMsg.textContent = t('cacheCleared');
       persistAndRender();
+    });
+  }
+
+  if (packExport) {
+    packExport.addEventListener('click', () => {
+      const rawPack = actionLibraryMeta?.rawPack;
+      if (!rawPack) return;
+      const payload = JSON.stringify(rawPack, null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const href = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fileName = `stretch-pack-${stamp}.json`;
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(href);
+      if (packMsg) packMsg.textContent = t('exportedPack', { name: fileName });
     });
   }
 
