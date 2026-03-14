@@ -1,5 +1,6 @@
 import { getDateKey, getDailyPlan } from '../../../packages/domain/src/planner.js';
 import { defaultStretchLibrary } from '../../../packages/domain/src/models.js';
+import { buildRecoveryPlan, getYesterdayDateKey } from '../../../packages/domain/src/recovery.js';
 import { getActiveStreak, hasCompletedPlan } from '../../../packages/domain/src/streaks.js';
 import { createRoutine, validateRoutineInput } from '../../../packages/domain/src/routines.js';
 import { getCompletionRate, getRecentCompletionWindow } from '../../../packages/domain/src/analytics.js';
@@ -56,6 +57,10 @@ function persistAndRender() {
 function render({ completedCount, completionRatio, guidedProgress }) {
   const streak = getActiveStreak(state.completedDates, todayDateKey);
   const ringDash = Math.round(completionRatio * 283);
+  const yesterdayDateKey = getYesterdayDateKey(todayDateKey);
+  const hasHistory = state.completedDates.length > 0;
+  const missedYesterday = hasHistory && !state.completedDates.includes(yesterdayDateKey);
+  const recoveryPlan = buildRecoveryPlan(defaultStretchLibrary, 3);
   const editingRoutine = routineEditorId
     ? state.customRoutines.find((routine) => routine.id === routineEditorId) || null
     : null;
@@ -115,6 +120,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       </div>
     </section>
 
+    ${renderRecoveryCard({ missedYesterday, recoveryPlan })}
     ${renderGuidedSessionCard(guidedProgress)}
 
     <section class="card enter-up delay-2">
@@ -269,6 +275,33 @@ function renderGuidedSessionCard(guidedProgress) {
   `;
 }
 
+function renderRecoveryCard({ missedYesterday, recoveryPlan }) {
+  const recoveryMinutes = Math.ceil(recoveryPlan.reduce((sum, item) => sum + item.durationSec, 0) / 60);
+  if (!missedYesterday) {
+    return `
+      <section class="card enter-up delay-2">
+        <header class="section-head">
+          <h2>Recovery Reset</h2>
+          <p class="muted">Momentum protected</p>
+        </header>
+        <p class="muted">No missed day detected. Keep your current rhythm.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="card enter-up delay-2">
+      <header class="section-head">
+        <h2>Recovery Reset</h2>
+        <p class="muted">${recoveryMinutes} min restart</p>
+      </header>
+      <p class="muted">Yesterday was missed. Run this short sequence to restart consistency.</p>
+      <p class="muted">${recoveryPlan.map((item) => escapeHtml(item.name)).join(' · ')}</p>
+      <button class="primary-btn" id="recovery-start">Start recovery session</button>
+    </section>
+  `;
+}
+
 function renderSessionCueCard() {
   const cueMode = state.settings.cueMode || 'vibration';
   return `
@@ -293,6 +326,24 @@ function renderSessionCueCard() {
 }
 
 function bindEvents() {
+  const recoveryStart = appRoot.querySelector('#recovery-start');
+  if (recoveryStart) {
+    recoveryStart.addEventListener('click', () => {
+      const recoveryPlan = buildRecoveryPlan(defaultStretchLibrary, 3);
+      const nextSession = createGuidedSession({
+        sessionId: `recovery-${todayDateKey}`,
+        dateKey: todayDateKey,
+        sourceLabel: 'Recovery Reset',
+        stretchIds: recoveryPlan.map((item) => item.id),
+        completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
+        stretchById,
+      });
+      if (!nextSession) return;
+      state.guidedSession = { ...nextSession, isRunning: true };
+      persistAndRender();
+    });
+  }
+
   const guidedStart = appRoot.querySelector('#guided-start');
   if (guidedStart) {
     guidedStart.addEventListener('click', () => {
