@@ -409,39 +409,6 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       </article>
     </section>
 
-    <section class="card enter-up delay-1">
-      <header class="section-head">
-        <h2>${t('weeklyConsistency')}</h2>
-        <p class="muted">${weeklyGoalAchieved ? t('goalReached') : `${weeklyRate}%`}</p>
-      </header>
-      <div class="weekly-grid" role="img" aria-label="Last 7 days completion">
-        ${recentWindow
-          .map(
-            (day) => `
-          <div class="day-chip ${day.isComplete ? 'done' : ''}">
-            <span>${escapeHtml(day.dayLabel)}</span>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-      <div class="goal-row">
-        <label class="stack-field goal-field">
-          ${t('weeklyGoal')}
-          <select id="weekly-goal">
-            ${[3, 4, 5, 6, 7]
-              .map((days) => `<option value="${days}" ${weeklyGoalDays === days ? 'selected' : ''}>${days}</option>`)
-              .join('')}
-          </select>
-        </label>
-        <p class="muted">${t('daysLabel', { done: weeklyCompleteDays, goal: weeklyGoalDays })}</p>
-      </div>
-      <div class="weekly-goal-track" aria-hidden="true">
-        <span style="width:${Math.round(weeklyGoalProgress * 100)}%"></span>
-      </div>
-      ${weeklyGoalAchieved ? `<p class="goal-achieved">${t('goalReachedMsg')}</p>` : `<p class="muted">${t('onTrack', { done: weeklyCompleteDays, goal: weeklyGoalDays })}</p>`}
-    </section>
-    ${renderRecoveryCard({ missedYesterday, recoveryPlan })}
     <section class="card enter-up delay-2">
       <header class="section-head">
         <div class="stack-head">
