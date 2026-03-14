@@ -273,6 +273,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .join(' · ')}</p>
             <div class="routine-actions">
               <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">Start</button>
+              <button class="ghost-btn" data-action="duplicate-routine" data-id="${routine.id}">Duplicate</button>
               <button class="ghost-btn" data-action="edit-routine" data-id="${routine.id}">Edit</button>
               ${
                 pendingRoutineDeleteId === routine.id
@@ -527,6 +528,25 @@ function bindEvents() {
       if (!nextSession) return;
       pendingRoutineDeleteId = null;
       state.guidedSession = { ...nextSession, isRunning: true };
+      persistAndRender();
+    });
+  });
+
+  appRoot.querySelectorAll('[data-action="duplicate-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const routineId = button.dataset.id;
+      const routine = state.customRoutines.find((item) => item.id === routineId);
+      if (!routine) return;
+
+      const suffix = ' Copy';
+      const baseAllowed = 40 - suffix.length;
+      const base = routine.name.trim().slice(0, baseAllowed);
+      const duplicateName = `${base}${suffix}`;
+      state.customRoutines = [
+        createRoutine(duplicateName, routine.stretchIds),
+        ...state.customRoutines,
+      ];
+      pendingRoutineDeleteId = null;
       persistAndRender();
     });
   });
