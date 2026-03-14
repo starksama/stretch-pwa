@@ -9,6 +9,7 @@ const defaultState = {
   settings: {
     healthSyncEnabled: false,
     cueMode: 'vibration',
+    weeklyGoalDays: 5,
   },
 };
 

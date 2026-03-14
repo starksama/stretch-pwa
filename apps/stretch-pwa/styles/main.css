@@ -111,6 +111,33 @@ h3 {
   gap: 8px;
 }
 
+.goal-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.goal-field {
+  min-width: 125px;
+}
+
+.weekly-goal-track {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(16, 35, 32, 0.12);
+  overflow: hidden;
+}
+
+.weekly-goal-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ok), var(--accent));
+  transition: width 260ms ease;
+}
+
 .day-chip {
   min-height: 42px;
   border-radius: 12px;

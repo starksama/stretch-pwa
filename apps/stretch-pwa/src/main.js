@@ -119,6 +119,12 @@ function render({ completedCount, completionRatio, guidedProgress }) {
     completedDates: state.completedDates,
     days: 7,
   });
+  const weeklyCompleteDays = recentWindow.filter((day) => day.isComplete).length;
+  const parsedWeeklyGoal = Number(state.settings.weeklyGoalDays);
+  const weeklyGoalDays = Number.isFinite(parsedWeeklyGoal)
+    ? Math.max(3, Math.min(7, parsedWeeklyGoal))
+    : 5;
+  const weeklyGoalProgress = Math.min(weeklyCompleteDays / weeklyGoalDays, 1);
   const weeklyRate = getCompletionRate(recentWindow);
 
   appRoot.innerHTML = `
@@ -167,6 +173,20 @@ function render({ completedCount, completionRatio, guidedProgress }) {
         `
           )
           .join('')}
+      </div>
+      <div class="goal-row">
+        <label class="stack-field goal-field">
+          Weekly goal
+          <select id="weekly-goal">
+            ${[3, 4, 5, 6, 7]
+              .map((days) => `<option value="${days}" ${weeklyGoalDays === days ? 'selected' : ''}>${days} days</option>`)
+              .join('')}
+          </select>
+        </label>
+        <p class="muted">${weeklyCompleteDays}/${weeklyGoalDays} days</p>
+      </div>
+      <div class="weekly-goal-track" aria-hidden="true">
+        <span style="width:${Math.round(weeklyGoalProgress * 100)}%"></span>
       </div>
     </section>
 
@@ -614,6 +634,7 @@ function bindEvents() {
   const cueMode = appRoot.querySelector('#cue-mode');
   const cueTest = appRoot.querySelector('#cue-test');
   const cueMsg = appRoot.querySelector('#cue-msg');
+  const weeklyGoal = appRoot.querySelector('#weekly-goal');
 
   if (syncToggle) {
     syncToggle.addEventListener('change', () => {
@@ -660,6 +681,14 @@ function bindEvents() {
     cueTest.addEventListener('click', () => {
       playCompletionCue(state.settings.cueMode);
       if (cueMsg) cueMsg.textContent = `Cue test played (${state.settings.cueMode}).`;
+    });
+  }
+
+  if (weeklyGoal) {
+    weeklyGoal.addEventListener('change', () => {
+      state.settings.weeklyGoalDays = Number(weeklyGoal.value);
+      saveState(state);
+      persistAndRender();
     });
   }
 }
