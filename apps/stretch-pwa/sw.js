@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stretch-flow-shell-v3';
+const CACHE_NAME = 'stretch-flow-shell-v4';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,12 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {

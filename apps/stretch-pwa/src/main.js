@@ -23,6 +23,7 @@ const stretchById = Object.fromEntries(defaultStretchLibrary.map((item) => [item
 let guidedTimerId = null;
 let routineEditorId = null;
 let hasFatalError = false;
+let hasSwReloaded = false;
 
 setupGlobalErrorHandling();
 bootstrap();
@@ -725,9 +726,38 @@ function adjustGuidedTime(deltaSec) {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // No-op for offline registration failures.
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((registration) => {
+        registration.update().catch(() => {
+          // No-op update failure.
+        });
+
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      })
+      .catch(() => {
+        // No-op for offline registration failures.
+      });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hasSwReloaded) return;
+      hasSwReloaded = true;
+      window.location.reload();
     });
   });
 }
