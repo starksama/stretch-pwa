@@ -30,6 +30,9 @@ let pendingHistoryClear = false;
 let pendingGuidedEndConfirm = false;
 let activeTab = 'today';
 const APP_TABS = ['today', 'guided', 'routines', 'history', 'settings'];
+let isGuidedTicking = false;
+let renderCount = 0;
+let renderDuringGuidedTicks = 0;
 
 const I18N = {
   en: {
@@ -344,6 +347,11 @@ function persistAndRender() {
 }
 
 function render({ completedCount, completionRatio, guidedProgress }) {
+  renderCount += 1;
+  if (isGuidedTicking) {
+    renderDuringGuidedTicks += 1;
+  }
+  exposeDebugCounters();
   const streak = getActiveStreak(state.completedDates, todayDateKey);
   const ringDash = Math.round(completionRatio * 283);
   const yesterdayDateKey = getYesterdayDateKey(todayDateKey);
@@ -1197,15 +1205,24 @@ function syncGuidedTimer() {
 
   guidedTimerId = window.setInterval(() => {
     if (!state.guidedSession?.isRunning) return;
-    state.guidedSession = tickGuidedSession(state.guidedSession);
+    isGuidedTicking = true;
+    try {
+      state.guidedSession = tickGuidedSession(state.guidedSession);
 
-    if (state.guidedSession.remainingSec <= 0) {
-      completeGuidedStep();
-      return;
+      if (state.guidedSession.remainingSec <= 0) {
+        completeGuidedStep();
+        return;
+      }
+
+      // Avoid storage writes every second to reduce UI jank.
+      if (state.guidedSession.remainingSec % 5 === 0) {
+        saveState(state);
+      }
+      refreshGuidedLiveElements({ tickOnly: true });
+    } finally {
+      isGuidedTicking = false;
+      exposeDebugCounters();
     }
-
-    saveState(state);
-    refreshGuidedLiveElements({ tickOnly: true });
   }, 1000);
 }
 
@@ -1442,4 +1459,11 @@ function setNodeText(element, value) {
   if (element.textContent !== next) {
     element.textContent = next;
   }
+}
+
+function exposeDebugCounters() {
+  window.__stretchDebug = {
+    renderCount,
+    renderDuringGuidedTicks,
+  };
 }
