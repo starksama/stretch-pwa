@@ -12,6 +12,8 @@ const defaultState = {
     weeklyGoalDays: 5,
     language: 'en',
     lastTab: 'today',
+    actionPackMode: 'seed',
+    actionPackUrl: '',
   },
 };
 
@@ -131,6 +133,12 @@ function sanitizeState(input) {
         ['today', 'guided', 'routines', 'history', 'settings'].includes(input.settings.lastTab)
           ? input.settings.lastTab
           : defaultState.settings.lastTab,
+      actionPackMode:
+        input.settings.actionPackMode === 'url' ? 'url' : defaultState.settings.actionPackMode,
+      actionPackUrl:
+        typeof input.settings.actionPackUrl === 'string'
+          ? input.settings.actionPackUrl.slice(0, 300)
+          : defaultState.settings.actionPackUrl,
     };
   }
 

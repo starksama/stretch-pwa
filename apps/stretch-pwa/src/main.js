@@ -3,7 +3,7 @@ import { buildRecoveryPlan, getYesterdayDateKey } from './lib/domain/recovery.js
 import { getActiveStreak, hasCompletedPlan } from './lib/domain/streaks.js';
 import { createRoutine, validateRoutineInput } from './lib/domain/routines.js';
 import { getCompletionRate, getRecentCompletionWindow } from './lib/domain/analytics.js';
-import { loadActionLibrary } from './lib/content/loader.js';
+import { loadActionLibrary, loadActionLibraryFromSource } from './lib/content/loader.js';
 import {
   clampSessionToLibrary,
   completeCurrentStretch,
@@ -19,10 +19,10 @@ import { featureFlags } from './config/featureFlags.js';
 const appRoot = document.querySelector('#app');
 const state = loadState();
 const todayDateKey = getDateKey();
-const actionLibrary = loadActionLibrary({ mode: 'seed' });
-const stretchLibrary = actionLibrary.actions;
-const plan = getDailyPlan(todayDateKey, stretchLibrary);
-const stretchById = Object.fromEntries(stretchLibrary.map((item) => [item.id, item]));
+let actionLibraryMeta = null;
+let stretchLibrary = [];
+let plan = null;
+let stretchById = {};
 let guidedTimerId = null;
 let routineEditorId = null;
 let hasFatalError = false;
@@ -293,6 +293,7 @@ bootstrap();
 
 function bootstrap() {
   try {
+    applyActionLibrary(loadActionLibrary({ mode: 'seed' }));
     if (!state.progressByDate[todayDateKey]) {
       state.progressByDate[todayDateKey] = {
         completedStretchIds: [],
@@ -309,6 +310,14 @@ function bootstrap() {
   } catch (error) {
     renderFatalError(error);
   }
+}
+
+function applyActionLibrary(actionLibrary) {
+  actionLibraryMeta = actionLibrary.meta;
+  stretchLibrary = actionLibrary.actions;
+  stretchById = Object.fromEntries(stretchLibrary.map((item) => [item.id, item]));
+  plan = getDailyPlan(todayDateKey, stretchLibrary);
+  state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
 }
 
 function setupGlobalErrorHandling() {
@@ -499,7 +508,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
   if (activeTab === 'routines') activeView = routinesSection;
   if (activeTab === 'history') activeView = renderSessionHistoryCard();
   if (activeTab === 'settings') {
-    activeView = `${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}`;
+    activeView = `${renderActionPackCard()} ${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}`;
   }
 
   appRoot.innerHTML = `
@@ -551,6 +560,34 @@ function renderIntegrationCard() {
         <button class="ghost-btn" id="sync-now">${t('runDrySync')}</button>
         <p class="muted" id="sync-msg">${t('noSyncYet')}</p>
       </div>
+    </section>
+  `;
+}
+
+function renderActionPackCard() {
+  const mode = state.settings.actionPackMode === 'url' ? 'url' : 'seed';
+  return `
+    <section class="card enter-up delay-2">
+      <header class="section-head">
+        <h2>Action Pack</h2>
+        <p class="muted">${escapeHtml(actionLibraryMeta?.version || '1.x')} · ${escapeHtml(actionLibraryMeta?.source || 'seed/local')}</p>
+      </header>
+      <label class="stack-field">
+        Source
+        <select id="pack-mode">
+          <option value="seed" ${mode === 'seed' ? 'selected' : ''}>Local Seed Pack</option>
+          <option value="url" ${mode === 'url' ? 'selected' : ''}>External URL Pack</option>
+        </select>
+      </label>
+      <label class="stack-field">
+        Pack URL
+        <input id="pack-url" type="url" placeholder="https://example.com/stretch-pack.json" value="${escapeHtml(state.settings.actionPackUrl || '')}" />
+      </label>
+      <div class="guided-actions">
+        <button class="ghost-btn" id="pack-load">Load pack</button>
+        <button class="ghost-btn" id="pack-seed">Reset seed pack</button>
+      </div>
+      <p class="muted" id="pack-msg">Current actions: ${stretchLibrary.length}</p>
     </section>
   `;
 }
@@ -1111,6 +1148,11 @@ function bindEvents() {
   const syncToggle = appRoot.querySelector('#sync-enabled');
   const syncButton = appRoot.querySelector('#sync-now');
   const syncMsg = appRoot.querySelector('#sync-msg');
+  const packMode = appRoot.querySelector('#pack-mode');
+  const packUrl = appRoot.querySelector('#pack-url');
+  const packLoad = appRoot.querySelector('#pack-load');
+  const packSeed = appRoot.querySelector('#pack-seed');
+  const packMsg = appRoot.querySelector('#pack-msg');
   const cueMode = appRoot.querySelector('#cue-mode');
   const cueTest = appRoot.querySelector('#cue-test');
   const cueMsg = appRoot.querySelector('#cue-msg');
@@ -1124,6 +1166,45 @@ function bindEvents() {
       state.settings.healthSyncEnabled = syncToggle.checked;
       saveState(state);
       if (syncMsg) syncMsg.textContent = syncToggle.checked ? t('scaffoldEnabled') : t('scaffoldDisabled');
+    });
+  }
+
+  if (packMode) {
+    packMode.addEventListener('change', () => {
+      state.settings.actionPackMode = packMode.value === 'url' ? 'url' : 'seed';
+      saveState(state);
+    });
+  }
+
+  if (packUrl) {
+    packUrl.addEventListener('change', () => {
+      state.settings.actionPackUrl = packUrl.value.trim();
+      saveState(state);
+    });
+  }
+
+  if (packLoad) {
+    packLoad.addEventListener('click', async () => {
+      const mode = packMode?.value === 'url' ? 'url' : 'seed';
+      const url = packUrl?.value?.trim() || '';
+      if (packMsg) packMsg.textContent = 'Loading action pack...';
+      const loaded = await loadActionLibraryFromSource({ mode, packUrl: url });
+      applyActionLibrary(loaded);
+      state.settings.actionPackMode = mode;
+      state.settings.actionPackUrl = url;
+      saveState(state);
+      persistAndRender();
+      if (packMsg) packMsg.textContent = `Loaded ${stretchLibrary.length} actions (${actionLibraryMeta?.source || 'seed/local'}).`;
+    });
+  }
+
+  if (packSeed) {
+    packSeed.addEventListener('click', () => {
+      applyActionLibrary(loadActionLibrary({ mode: 'seed' }));
+      state.settings.actionPackMode = 'seed';
+      state.settings.actionPackUrl = '';
+      saveState(state);
+      persistAndRender();
     });
   }
 

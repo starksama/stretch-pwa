@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stretch-flow-shell-v5';
+const CACHE_NAME = 'stretch-flow-shell-v6';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,9 @@ const SHELL_ASSETS = [
   './src/config/featureFlags.js',
   './src/lib/domain/models.js',
   './src/lib/domain/analytics.js',
+  './src/lib/content/loader.js',
+  './src/lib/content/schema.js',
+  './src/lib/content/seedPack.v1.js',
   './src/lib/domain/planner.js',
   './src/lib/domain/recovery.js',
   './src/lib/domain/routines.js',

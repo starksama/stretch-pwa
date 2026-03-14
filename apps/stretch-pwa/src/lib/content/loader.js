@@ -27,6 +27,21 @@ export function loadActionLibrary(options = {}) {
   };
 }
 
+export async function loadActionLibraryFromSource(options = {}) {
+  const { mode = 'seed', packUrl = '', externalPack = null, fetchImpl = fetch } = options;
+  if (mode === 'url' && packUrl.trim()) {
+    try {
+      const response = await fetchImpl(packUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP_${response.status}`);
+      const remotePack = await response.json();
+      return loadActionLibrary({ mode: 'download-pack', externalPack: remotePack });
+    } catch {
+      return loadActionLibrary({ mode: 'seed' });
+    }
+  }
+  return loadActionLibrary({ mode, externalPack });
+}
+
 function resolveCandidatePack(mode, externalPack) {
   if (mode === 'external-api' || mode === 'download-pack') {
     return externalPack;

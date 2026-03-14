@@ -590,6 +590,15 @@ h3 {
   background: #fff;
 }
 
+.stack-field input {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 35, 32, 0.22);
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+}
+
 .routine-list li {
   border-top: 1px dashed rgba(16, 35, 32, 0.15);
   padding-top: 10px;
