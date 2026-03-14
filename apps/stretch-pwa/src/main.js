@@ -131,6 +131,9 @@ const I18N = {
     completed: 'completed',
     languageEnglish: 'English',
     languageTraditionalChinese: 'Traditional Chinese',
+    activeSession: 'Active Session',
+    returnGuided: 'Open Guided',
+    currentStep: 'Current: {name}',
   },
   'zh-TW': {
     today: '今日',
@@ -232,6 +235,9 @@ const I18N = {
     completed: '完成',
     languageEnglish: '英文',
     languageTraditionalChinese: '繁體中文',
+    activeSession: '進行中流程',
+    returnGuided: '開啟引導',
+    currentStep: '目前：{name}',
   },
 };
 
@@ -547,6 +553,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
     ${activeTab === 'routines' ? routinesSection : ''}
     ${activeTab === 'history' ? renderSessionHistoryCard() : ''}
     ${activeTab === 'settings' ? `${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}` : ''}
+    ${activeTab !== 'guided' ? renderGuidedDock(guidedProgress) : ''}
   `;
 
   bindEvents();
@@ -626,6 +633,32 @@ function renderGuidedSessionCard(guidedProgress) {
         `
             : `<button class="ghost-btn" id="guided-end">${t('finishNow')}</button>`
         }
+      </div>
+    </section>
+  `;
+}
+
+function renderGuidedDock(guidedProgress) {
+  const session = state.guidedSession;
+  if (!session) return '';
+  const activeStretch = stretchById[session.stretchIds[session.currentIndex]];
+  if (!activeStretch) return '';
+  const statusLabel = session.isRunning ? t('running') : t('paused');
+
+  return `
+    <section class="card guided-dock enter-up delay-2">
+      <header class="section-head">
+        <h2>${t('activeSession')}</h2>
+        <p class="muted" data-dock-status>${statusLabel}</p>
+      </header>
+      <p class="muted" data-dock-step>${t('currentStep', { name: activeStretch.name })}</p>
+      <p class="guided-time mini" data-dock-time>${formatTimer(session.remainingSec)}</p>
+      <div class="progress-track" aria-hidden="true">
+        <span data-dock-track style="width:${Math.round(guidedProgress * 100)}%"></span>
+      </div>
+      <div class="guided-actions">
+        <button class="ghost-btn" id="dock-open-guided">${t('returnGuided')}</button>
+        <button class="ghost-btn" id="dock-toggle-guided">${session.isRunning ? t('pause') : t('resume')}</button>
       </div>
     </section>
   `;
@@ -911,6 +944,25 @@ function bindEvents() {
     });
   }
 
+  const dockOpenGuided = appRoot.querySelector('#dock-open-guided');
+  if (dockOpenGuided) {
+    dockOpenGuided.addEventListener('click', () => {
+      activeTab = 'guided';
+      state.settings.lastTab = 'guided';
+      saveState(state);
+      persistAndRender();
+    });
+  }
+
+  const dockToggleGuided = appRoot.querySelector('#dock-toggle-guided');
+  if (dockToggleGuided) {
+    dockToggleGuided.addEventListener('click', () => {
+      if (!state.guidedSession) return;
+      state.guidedSession.isRunning = !state.guidedSession.isRunning;
+      persistAndRender();
+    });
+  }
+
   const guidedSkip = appRoot.querySelector('#guided-skip');
   if (guidedSkip) {
     guidedSkip.addEventListener('click', () => {
@@ -1147,7 +1199,6 @@ function syncGuidedTimer() {
 }
 
 function refreshGuidedLiveElements() {
-  if (activeTab !== 'guided') return;
   const session = state.guidedSession;
   if (!session) return;
 
@@ -1163,6 +1214,11 @@ function refreshGuidedLiveElements() {
   const stretchTrack = appRoot.querySelector('[data-guided-stretch-track]');
   const sessionTrack = appRoot.querySelector('[data-guided-session-track]');
   const toggleBtn = appRoot.querySelector('#guided-toggle');
+  const dockStatus = appRoot.querySelector('[data-dock-status]');
+  const dockStep = appRoot.querySelector('[data-dock-step]');
+  const dockTime = appRoot.querySelector('[data-dock-time]');
+  const dockTrack = appRoot.querySelector('[data-dock-track]');
+  const dockToggleBtn = appRoot.querySelector('#dock-toggle-guided');
 
   const totalStretches = session.stretchIds.length || plan.stretches.length;
   const completed = session.completedStretchIds.length;
@@ -1185,6 +1241,11 @@ function refreshGuidedLiveElements() {
   if (stretchTrack) stretchTrack.style.width = `${Math.max(0, Math.min(stretchPercent, 100))}%`;
   if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
   if (toggleBtn) toggleBtn.textContent = session.isRunning ? t('pause') : t('resume');
+  if (dockStatus) dockStatus.textContent = statusLabel;
+  if (dockStep) dockStep.textContent = t('currentStep', { name: activeStretch.name });
+  if (dockTime) dockTime.textContent = formatTimer(session.remainingSec);
+  if (dockTrack) dockTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
+  if (dockToggleBtn) dockToggleBtn.textContent = session.isRunning ? t('pause') : t('resume');
 }
 
 function completeGuidedStep() {
