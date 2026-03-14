@@ -25,6 +25,7 @@ let routineEditorId = null;
 let hasFatalError = false;
 let hasSwReloaded = false;
 let pendingRoutineDeleteId = null;
+let pendingHistoryClear = false;
 
 setupGlobalErrorHandling();
 bootstrap();
@@ -411,8 +412,20 @@ function renderSessionHistoryCard() {
   return `
     <section class="card enter-up delay-2">
       <header class="section-head">
-        <h2>Recent Sessions</h2>
-        <p class="muted">Last ${history.length}</p>
+        <div class="stack-head">
+          <h2>Recent Sessions</h2>
+          <p class="muted">Last ${history.length}</p>
+        </div>
+        <div class="inline-actions">
+          ${
+            pendingHistoryClear
+              ? `
+          <button class="ghost-btn danger-btn" id="history-clear-confirm">Confirm clear</button>
+          <button class="ghost-btn" id="history-clear-cancel">Cancel</button>
+          `
+              : '<button class="ghost-btn" id="history-clear">Clear history</button>'
+          }
+        </div>
       </header>
       <ul class="history-list">
         ${history
@@ -714,6 +727,9 @@ function bindEvents() {
   const cueTest = appRoot.querySelector('#cue-test');
   const cueMsg = appRoot.querySelector('#cue-msg');
   const weeklyGoal = appRoot.querySelector('#weekly-goal');
+  const historyClear = appRoot.querySelector('#history-clear');
+  const historyClearConfirm = appRoot.querySelector('#history-clear-confirm');
+  const historyClearCancel = appRoot.querySelector('#history-clear-cancel');
 
   if (syncToggle) {
     syncToggle.addEventListener('change', () => {
@@ -767,6 +783,28 @@ function bindEvents() {
     weeklyGoal.addEventListener('change', () => {
       state.settings.weeklyGoalDays = Number(weeklyGoal.value);
       saveState(state);
+      persistAndRender();
+    });
+  }
+
+  if (historyClear) {
+    historyClear.addEventListener('click', () => {
+      pendingHistoryClear = true;
+      persistAndRender();
+    });
+  }
+
+  if (historyClearCancel) {
+    historyClearCancel.addEventListener('click', () => {
+      pendingHistoryClear = false;
+      persistAndRender();
+    });
+  }
+
+  if (historyClearConfirm) {
+    historyClearConfirm.addEventListener('click', () => {
+      state.sessionHistory = [];
+      pendingHistoryClear = false;
       persistAndRender();
     });
   }
@@ -902,6 +940,7 @@ function appendSessionHistory({ sourceLabel, completed, total, endedReason }) {
   };
 
   state.sessionHistory = [nextEntry, ...(state.sessionHistory || [])].slice(0, 30);
+  pendingHistoryClear = false;
 }
 
 function playCompletionCue(cueMode) {
