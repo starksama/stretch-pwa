@@ -268,6 +268,8 @@ function renderGuidedSessionCard(guidedProgress) {
         <span style="width:${sessionPercent}%"></span>
       </div>
       <div class="guided-actions">
+        <button class="ghost-btn" id="guided-minus">-10s</button>
+        <button class="ghost-btn" id="guided-plus">+10s</button>
         <button class="ghost-btn" id="guided-toggle">${session.isRunning ? 'Pause' : 'Resume'}</button>
         <button class="ghost-btn" id="guided-skip">Skip</button>
         <button class="ghost-btn" id="guided-end">Finish now</button>
@@ -458,6 +460,20 @@ function bindEvents() {
     });
   }
 
+  const guidedMinus = appRoot.querySelector('#guided-minus');
+  if (guidedMinus) {
+    guidedMinus.addEventListener('click', () => {
+      adjustGuidedTime(-10);
+    });
+  }
+
+  const guidedPlus = appRoot.querySelector('#guided-plus');
+  if (guidedPlus) {
+    guidedPlus.addEventListener('click', () => {
+      adjustGuidedTime(10);
+    });
+  }
+
   const guidedEnd = appRoot.querySelector('#guided-end');
   if (guidedEnd) {
     guidedEnd.addEventListener('click', () => {
@@ -645,6 +661,16 @@ function completeGuidedStep() {
     });
   }
   state.guidedSession = result.nextSession ? { ...result.nextSession, isRunning: true } : null;
+  persistAndRender();
+}
+
+function adjustGuidedTime(deltaSec) {
+  if (!state.guidedSession) return;
+  const currentId = state.guidedSession.stretchIds[state.guidedSession.currentIndex];
+  const baseDuration = stretchById[currentId]?.durationSec || 60;
+  const maxDuration = Math.max(baseDuration * 3, 180);
+  const next = state.guidedSession.remainingSec + deltaSec;
+  state.guidedSession.remainingSec = Math.max(5, Math.min(maxDuration, next));
   persistAndRender();
 }
 
