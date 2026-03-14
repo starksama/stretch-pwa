@@ -186,6 +186,9 @@ const I18N = {
     allLabel: 'All',
     matchingActions: 'Matching actions: {count}',
     tagsLabel: 'Tags',
+    coverageBodyAreas: 'Body areas covered: {count}',
+    averageDuration: 'Avg duration: {sec}s',
+    sideAwareCount: 'Side-aware actions: {count}',
   },
   'zh-TW': {
     today: '今日',
@@ -331,6 +334,9 @@ const I18N = {
     allLabel: '全部',
     matchingActions: '符合動作數：{count}',
     tagsLabel: '標籤',
+    coverageBodyAreas: '涵蓋部位數：{count}',
+    averageDuration: '平均秒數：{sec} 秒',
+    sideAwareCount: '左右側動作數：{count}',
   },
 };
 
@@ -791,6 +797,10 @@ function renderActionPackInspectorCard() {
   const tags = Array.from(
     new Set(stretchLibrary.flatMap((action) => (Array.isArray(action.quality?.tags) ? action.quality.tags : [])))
   ).sort();
+  const avgDuration = stretchLibrary.length
+    ? Math.round(stretchLibrary.reduce((sum, action) => sum + (Number(action.durationSec) || 0), 0) / stretchLibrary.length)
+    : 0;
+  const sideAwareCount = stretchLibrary.filter((action) => Boolean(action.sideAware)).length;
 
   const filtered = stretchLibrary.filter((action) => {
     const matchDifficulty =
@@ -833,6 +843,11 @@ function renderActionPackInspectorCard() {
             ${tags.map((value) => option(value, packInspectorFilters.tag)).join('')}
           </select>
         </label>
+      </div>
+      <div class="today-inline-stats">
+        <p><strong>${bodyAreas.length}</strong> ${t('coverageBodyAreas', { count: bodyAreas.length })}</p>
+        <p><strong>${avgDuration}s</strong> ${t('averageDuration', { sec: avgDuration })}</p>
+        <p><strong>${sideAwareCount}</strong> ${t('sideAwareCount', { count: sideAwareCount })}</p>
       </div>
       <p class="muted">${t('matchingActions', { count: filtered.length })}</p>
       <ul class="history-list">
