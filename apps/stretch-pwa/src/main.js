@@ -566,6 +566,11 @@ function renderIntegrationCard() {
 
 function renderActionPackCard() {
   const mode = state.settings.actionPackMode === 'url' ? 'url' : 'seed';
+  const difficultySummary = stretchLibrary.reduce((acc, action) => {
+    const key = action.quality?.difficulty || 'unknown';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
   return `
     <section class="card enter-up delay-2">
       <header class="section-head">
@@ -593,6 +598,7 @@ function renderActionPackCard() {
         <button class="ghost-btn" id="pack-seed">Reset seed pack</button>
       </div>
       <p class="muted" id="pack-msg">Current actions: ${stretchLibrary.length}</p>
+      <p class="muted">Difficulty mix: ${Object.entries(difficultySummary).map(([k, v]) => `${k} ${v}`).join(' · ')}</p>
     </section>
   `;
 }

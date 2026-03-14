@@ -148,6 +148,60 @@ export const seedActionPackV1 = {
         alternative: '把手肘放低可降低強度。',
       },
     }),
+    action('ankle-rock', 40, true, StretchFocus.MOBILITY, 1, 'beginner', 'ankles', ['mobility', 'running'], {
+      en: {
+        title: 'Ankle Dorsiflexion Rock',
+        description: 'In a split stance, drive front knee gently over toes.',
+        formCue: 'Keep front heel grounded and knee tracking over second toe.',
+        breathingCue: 'Inhale to reset, exhale as you glide forward.',
+        warning: 'Do not let heel lift off the floor.',
+        alternative: 'Reduce range and hold onto wall support.',
+      },
+      'zh-TW': {
+        title: '踝背屈前推',
+        description: '前後站姿，前膝溫和往腳尖方向推進。',
+        formCue: '前腳跟貼地，膝蓋對準第二腳趾。',
+        breathingCue: '吸氣回正，吐氣再往前推。',
+        warning: '避免前腳跟離地。',
+        alternative: '先縮小幅度並扶牆穩定。',
+      },
+    }),
+    action('wrist-extensor', 40, true, StretchFocus.RECOVERY, 1, 'beginner', 'wrists', ['desk', 'recovery'], {
+      en: {
+        title: 'Wrist Extensor Stretch',
+        description: 'Extend one arm and gently flex wrist downward with other hand.',
+        formCue: 'Keep elbow straight but soft, shoulder relaxed.',
+        breathingCue: 'Slow inhale, long exhale as forearm releases.',
+        warning: 'Avoid sharp tingling or numbness.',
+        alternative: 'Do light circles if static stretch feels intense.',
+      },
+      'zh-TW': {
+        title: '手腕伸肌伸展',
+        description: '單手前伸，另一手輕壓手背向下。',
+        formCue: '手肘伸直但不鎖死，肩膀保持放鬆。',
+        breathingCue: '慢吸氣，長吐氣讓前臂放鬆。',
+        warning: '若有刺麻感請立刻減量。',
+        alternative: '若靜態拉伸太強可改做小幅畫圈。',
+      },
+    }),
+    action('supine-twist', 55, true, StretchFocus.RECOVERY, 1, 'beginner', 'lower-back', ['recovery', 'spine'], {
+      en: {
+        title: 'Supine Twist',
+        description: 'Lie on back, drop bent knees to one side and open arms.',
+        formCue: 'Keep shoulders broad and let knees fall by gravity.',
+        breathingCue: 'Inhale into belly, exhale to soften spine.',
+        warning: 'Do not force knees to floor.',
+        alternative: 'Place pillow under knees for support.',
+      },
+      'zh-TW': {
+        title: '仰躺脊椎扭轉',
+        description: '仰躺屈膝，雙膝倒向一側，雙臂打開。',
+        formCue: '肩膀放寬貼地，讓膝蓋自然下落。',
+        breathingCue: '吸氣進入腹部，吐氣放鬆脊椎。',
+        warning: '不要硬壓膝蓋貼地。',
+        alternative: '膝下可墊枕頭支撐。',
+      },
+    }),
   ],
 };
 
