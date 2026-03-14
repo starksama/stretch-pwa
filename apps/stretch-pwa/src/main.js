@@ -11,7 +11,7 @@ import {
   getGuidedSessionProgress,
   tickGuidedSession,
 } from '../../../packages/domain/src/session.js';
-import { loadState, saveState } from '../../../packages/storage/src/localStore.js';
+import { clearState, loadState, saveState } from '../../../packages/storage/src/localStore.js';
 import { syncWorkoutSnapshot } from '../../../packages/integrations/health-sync/src/index.js';
 import { featureFlags } from './config/featureFlags.js';
 
@@ -22,17 +22,66 @@ const plan = getDailyPlan(todayDateKey, defaultStretchLibrary);
 const stretchById = Object.fromEntries(defaultStretchLibrary.map((item) => [item.id, item]));
 let guidedTimerId = null;
 let routineEditorId = null;
+let hasFatalError = false;
 
-if (!state.progressByDate[todayDateKey]) {
-  state.progressByDate[todayDateKey] = {
-    completedStretchIds: [],
-    lastUpdatedAt: new Date().toISOString(),
-  };
+setupGlobalErrorHandling();
+bootstrap();
+
+function bootstrap() {
+  try {
+    if (!state.progressByDate[todayDateKey]) {
+      state.progressByDate[todayDateKey] = {
+        completedStretchIds: [],
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    }
+    state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
+
+    persistAndRender();
+    registerServiceWorker();
+  } catch (error) {
+    renderFatalError(error);
+  }
 }
-state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
 
-persistAndRender();
-registerServiceWorker();
+function setupGlobalErrorHandling() {
+  window.addEventListener('error', (event) => {
+    renderFatalError(event.error || new Error(event.message || 'Unknown runtime error'));
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    renderFatalError(event.reason instanceof Error ? event.reason : new Error('Unhandled promise rejection'));
+  });
+}
+
+function renderFatalError(error) {
+  if (hasFatalError) return;
+  hasFatalError = true;
+  if (!appRoot) return;
+  const message = error?.message ? String(error.message) : 'Unexpected runtime error';
+  appRoot.innerHTML = `
+    <section class="card">
+      <h2>App Recovery</h2>
+      <p class="muted">Stretch Flow hit a runtime error and paused rendering.</p>
+      <p class="muted">Error: ${escapeHtml(message)}</p>
+      <div class="guided-actions">
+        <button class="primary-btn" id="fatal-reload">Reload app</button>
+        <button class="ghost-btn" id="fatal-reset">Reset local app data</button>
+      </div>
+    </section>
+  `;
+
+  const reloadBtn = appRoot.querySelector('#fatal-reload');
+  if (reloadBtn) reloadBtn.addEventListener('click', () => window.location.reload());
+
+  const resetBtn = appRoot.querySelector('#fatal-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      clearState();
+      window.location.reload();
+    });
+  }
+}
 
 function persistAndRender() {
   const todayProgress = state.progressByDate[todayDateKey];
@@ -751,9 +800,14 @@ function playCompletionCue(cueMode) {
 
 function escapeHtml(value) {
   return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .split('&')
+    .join('&amp;')
+    .split('<')
+    .join('&lt;')
+    .split('>')
+    .join('&gt;')
+    .split('"')
+    .join('&quot;')
+    .split("'")
+    .join('&#39;');
 }

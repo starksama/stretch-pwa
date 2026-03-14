@@ -42,3 +42,7 @@ export function saveState(state) {
 export function getDefaultState() {
   return cloneDefaultState();
 }
+
+export function clearState() {
+  localStorage.removeItem(STORAGE_KEY);
+}

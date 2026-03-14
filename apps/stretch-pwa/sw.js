@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stretch-flow-shell-v2';
+const CACHE_NAME = 'stretch-flow-shell-v3';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -51,7 +51,16 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => {
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+
+          return new Response('Offline asset unavailable', {
+            status: 503,
+            statusText: 'Service Unavailable',
+          });
+        });
     })
   );
 });
