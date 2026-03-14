@@ -1,5 +1,11 @@
 import { seedActionPackV1 } from './seedPack.v1.js';
+import { seedOfficeActionPackV1 } from './seedPack.office.v1.js';
 import { isValidActionPack } from './schema.js';
+
+const BUILTIN_PACKS = {
+  seed: seedActionPackV1,
+  'seed-office': seedOfficeActionPackV1,
+};
 
 export function loadActionLibrary(options = {}) {
   const { mode = 'seed', externalPack = null } = options;
@@ -12,6 +18,7 @@ export function loadActionLibrary(options = {}) {
       source: pack.source || (pack === seedActionPackV1 ? 'seed/local' : 'external'),
       mode,
       usedFallback: pack !== candidate,
+      rawPack: pack,
     },
     actions: pack.actions.map((action) => ({
       id: action.id,
@@ -45,6 +52,9 @@ export async function loadActionLibraryFromSource(options = {}) {
 function resolveCandidatePack(mode, externalPack) {
   if (mode === 'external-api' || mode === 'download-pack') {
     return externalPack;
+  }
+  if (BUILTIN_PACKS[mode]) {
+    return BUILTIN_PACKS[mode];
   }
   return seedActionPackV1;
 }

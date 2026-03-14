@@ -6,6 +6,7 @@ const defaultState = {
   customRoutines: [],
   guidedSession: null,
   sessionHistory: [],
+  actionPackCache: null,
   settings: {
     healthSyncEnabled: false,
     cueMode: 'vibration',
@@ -115,6 +116,26 @@ function sanitizeState(input) {
       }));
   }
 
+  if (input.actionPackCache && typeof input.actionPackCache === 'object') {
+    const nextCache = {
+      pack:
+        input.actionPackCache.pack && typeof input.actionPackCache.pack === 'object'
+          ? input.actionPackCache.pack
+          : null,
+      source:
+        typeof input.actionPackCache.source === 'string' ? input.actionPackCache.source : 'unknown',
+      url:
+        typeof input.actionPackCache.url === 'string' ? input.actionPackCache.url.slice(0, 300) : '',
+      loadedAt:
+        typeof input.actionPackCache.loadedAt === 'string'
+          ? input.actionPackCache.loadedAt
+          : new Date().toISOString(),
+    };
+    if (nextCache.pack) {
+      safe.actionPackCache = nextCache;
+    }
+  }
+
   if (input.settings && typeof input.settings === 'object') {
     safe.settings = {
       healthSyncEnabled: Boolean(input.settings.healthSyncEnabled),
@@ -134,7 +155,9 @@ function sanitizeState(input) {
           ? input.settings.lastTab
           : defaultState.settings.lastTab,
       actionPackMode:
-        input.settings.actionPackMode === 'url' ? 'url' : defaultState.settings.actionPackMode,
+        ['seed', 'seed-office', 'url', 'file'].includes(input.settings.actionPackMode)
+          ? input.settings.actionPackMode
+          : defaultState.settings.actionPackMode,
       actionPackUrl:
         typeof input.settings.actionPackUrl === 'string'
           ? input.settings.actionPackUrl.slice(0, 300)

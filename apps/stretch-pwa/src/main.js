@@ -148,6 +148,27 @@ const I18N = {
     alternativeLabel: 'Alternative',
     difficultyLabel: 'Difficulty',
     bodyAreaLabel: 'Body area',
+    actionPackTitle: 'Action Pack',
+    actionPackSource: 'Source',
+    localSeedPack: 'Local Seed Pack',
+    officeSeedPack: 'Office Reset Pack',
+    externalUrlPack: 'External URL Pack',
+    packUrlLabel: 'Pack URL',
+    localPackFile: 'Local pack file',
+    loadPack: 'Load pack',
+    loadFilePack: 'Load file pack',
+    resetSeedPack: 'Reset seed pack',
+    useCachedPack: 'Use cached pack',
+    clearCachedPack: 'Clear cache',
+    currentActions: 'Current actions: {count}',
+    difficultyMix: 'Difficulty mix: {mix}',
+    loadingPack: 'Loading action pack...',
+    loadedPack: 'Loaded {count} actions ({source}).',
+    selectJsonFirst: 'Select a JSON file first.',
+    invalidPackFile: 'Invalid pack file. Kept current pack.',
+    cacheReady: 'Cached pack ready ({source}).',
+    cacheCleared: 'Cached pack removed.',
+    noCacheAvailable: 'No cached pack available.',
   },
   'zh-TW': {
     today: '今日',
@@ -260,6 +281,27 @@ const I18N = {
     alternativeLabel: '替代方式',
     difficultyLabel: '難度',
     bodyAreaLabel: '部位',
+    actionPackTitle: '動作包',
+    actionPackSource: '來源',
+    localSeedPack: '本機基礎動作包',
+    officeSeedPack: '辦公室重置動作包',
+    externalUrlPack: '外部 URL 動作包',
+    packUrlLabel: '動作包 URL',
+    localPackFile: '本機動作包檔案',
+    loadPack: '載入動作包',
+    loadFilePack: '載入檔案動作包',
+    resetSeedPack: '重設為基礎動作包',
+    useCachedPack: '使用快取動作包',
+    clearCachedPack: '清除快取',
+    currentActions: '目前動作數：{count}',
+    difficultyMix: '難度分布：{mix}',
+    loadingPack: '正在載入動作包...',
+    loadedPack: '已載入 {count} 個動作（{source}）。',
+    selectJsonFirst: '請先選擇 JSON 檔案。',
+    invalidPackFile: '動作包檔案格式錯誤，已保留目前內容。',
+    cacheReady: '快取動作包可用（{source}）。',
+    cacheCleared: '已移除快取動作包。',
+    noCacheAvailable: '目前沒有可用快取動作包。',
   },
 };
 
@@ -293,7 +335,7 @@ bootstrap();
 
 function bootstrap() {
   try {
-    applyActionLibrary(loadActionLibrary({ mode: 'seed' }));
+    initializeActionLibraryFromState();
     if (!state.progressByDate[todayDateKey]) {
       state.progressByDate[todayDateKey] = {
         completedStretchIds: [],
@@ -318,6 +360,20 @@ function applyActionLibrary(actionLibrary) {
   stretchById = Object.fromEntries(stretchLibrary.map((item) => [item.id, item]));
   plan = getDailyPlan(todayDateKey, stretchLibrary);
   state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
+}
+
+function initializeActionLibraryFromState() {
+  const mode = state.settings.actionPackMode || 'seed';
+  const cachedPack = state.actionPackCache?.pack;
+
+  if ((mode === 'url' || mode === 'file') && cachedPack && typeof cachedPack === 'object') {
+    const cachedLibrary = loadActionLibrary({ mode: 'download-pack', externalPack: cachedPack });
+    applyActionLibrary(cachedLibrary);
+    return;
+  }
+
+  const safeMode = mode === 'seed-office' ? 'seed-office' : 'seed';
+  applyActionLibrary(loadActionLibrary({ mode: safeMode }));
 }
 
 function setupGlobalErrorHandling() {
@@ -565,40 +621,53 @@ function renderIntegrationCard() {
 }
 
 function renderActionPackCard() {
-  const mode = state.settings.actionPackMode === 'url' ? 'url' : 'seed';
+  const mode = ['seed', 'seed-office', 'url', 'file'].includes(state.settings.actionPackMode)
+    ? state.settings.actionPackMode
+    : 'seed';
+  const selectMode = mode === 'file' ? 'url' : mode;
   const difficultySummary = stretchLibrary.reduce((acc, action) => {
     const key = action.quality?.difficulty || 'unknown';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
+  const cacheMeta = state.actionPackCache;
+  const difficultyMix = Object.entries(difficultySummary)
+    .map(([k, v]) => `${k} ${v}`)
+    .join(' · ');
   return `
     <section class="card enter-up delay-2">
       <header class="section-head">
-        <h2>Action Pack</h2>
+        <h2>${t('actionPackTitle')}</h2>
         <p class="muted">${escapeHtml(actionLibraryMeta?.version || '1.x')} · ${escapeHtml(actionLibraryMeta?.source || 'seed/local')}</p>
       </header>
       <label class="stack-field">
-        Source
+        ${t('actionPackSource')}
         <select id="pack-mode">
-          <option value="seed" ${mode === 'seed' ? 'selected' : ''}>Local Seed Pack</option>
-          <option value="url" ${mode === 'url' ? 'selected' : ''}>External URL Pack</option>
+          <option value="seed" ${selectMode === 'seed' ? 'selected' : ''}>${t('localSeedPack')}</option>
+          <option value="seed-office" ${selectMode === 'seed-office' ? 'selected' : ''}>${t('officeSeedPack')}</option>
+          <option value="url" ${selectMode === 'url' ? 'selected' : ''}>${t('externalUrlPack')}</option>
         </select>
       </label>
       <label class="stack-field">
-        Pack URL
+        ${t('packUrlLabel')}
         <input id="pack-url" type="url" placeholder="https://example.com/stretch-pack.json" value="${escapeHtml(state.settings.actionPackUrl || '')}" />
       </label>
       <label class="stack-field">
-        Local pack file
+        ${t('localPackFile')}
         <input id="pack-file" type="file" accept="application/json" />
       </label>
       <div class="guided-actions">
-        <button class="ghost-btn" id="pack-load">Load pack</button>
-        <button class="ghost-btn" id="pack-load-file">Load file pack</button>
-        <button class="ghost-btn" id="pack-seed">Reset seed pack</button>
+        <button class="ghost-btn" id="pack-load">${t('loadPack')}</button>
+        <button class="ghost-btn" id="pack-load-file">${t('loadFilePack')}</button>
+        <button class="ghost-btn" id="pack-seed">${t('resetSeedPack')}</button>
       </div>
-      <p class="muted" id="pack-msg">Current actions: ${stretchLibrary.length}</p>
-      <p class="muted">Difficulty mix: ${Object.entries(difficultySummary).map(([k, v]) => `${k} ${v}`).join(' · ')}</p>
+      <div class="guided-actions">
+        <button class="ghost-btn" id="pack-use-cache">${t('useCachedPack')}</button>
+        <button class="ghost-btn" id="pack-clear-cache">${t('clearCachedPack')}</button>
+      </div>
+      <p class="muted" id="pack-msg">${t('currentActions', { count: stretchLibrary.length })}</p>
+      <p class="muted">${t('difficultyMix', { mix: difficultyMix })}</p>
+      <p class="muted">${cacheMeta ? escapeHtml(`${cacheMeta.source} · ${cacheMeta.loadedAt}`) : t('noCacheAvailable')}</p>
     </section>
   `;
 }
@@ -1165,6 +1234,8 @@ function bindEvents() {
   const packLoadFile = appRoot.querySelector('#pack-load-file');
   const packSeed = appRoot.querySelector('#pack-seed');
   const packFile = appRoot.querySelector('#pack-file');
+  const packUseCache = appRoot.querySelector('#pack-use-cache');
+  const packClearCache = appRoot.querySelector('#pack-clear-cache');
   const packMsg = appRoot.querySelector('#pack-msg');
   const cueMode = appRoot.querySelector('#cue-mode');
   const cueTest = appRoot.querySelector('#cue-test');
@@ -1184,7 +1255,14 @@ function bindEvents() {
 
   if (packMode) {
     packMode.addEventListener('change', () => {
-      state.settings.actionPackMode = packMode.value === 'url' ? 'url' : 'seed';
+      const nextMode = ['seed', 'seed-office', 'url'].includes(packMode.value) ? packMode.value : 'seed';
+      state.settings.actionPackMode = nextMode;
+      if (nextMode === 'seed' || nextMode === 'seed-office') {
+        applyActionLibrary(loadActionLibrary({ mode: nextMode }));
+        saveState(state);
+        persistAndRender();
+        return;
+      }
       saveState(state);
     });
   }
@@ -1198,16 +1276,29 @@ function bindEvents() {
 
   if (packLoad) {
     packLoad.addEventListener('click', async () => {
-      const mode = packMode?.value === 'url' ? 'url' : 'seed';
+      const mode = ['seed', 'seed-office', 'url'].includes(packMode?.value) ? packMode.value : 'seed';
       const url = packUrl?.value?.trim() || '';
-      if (packMsg) packMsg.textContent = 'Loading action pack...';
+      if (packMsg) packMsg.textContent = t('loadingPack');
       const loaded = await loadActionLibraryFromSource({ mode, packUrl: url });
       applyActionLibrary(loaded);
       state.settings.actionPackMode = mode;
       state.settings.actionPackUrl = url;
+      if (loaded.meta?.rawPack && !loaded.meta.usedFallback && mode === 'url') {
+        state.actionPackCache = {
+          pack: loaded.meta.rawPack,
+          source: loaded.meta.source || 'external/url',
+          url,
+          loadedAt: new Date().toISOString(),
+        };
+      }
       saveState(state);
       persistAndRender();
-      if (packMsg) packMsg.textContent = `Loaded ${stretchLibrary.length} actions (${actionLibraryMeta?.source || 'seed/local'}).`;
+      if (packMsg) {
+        packMsg.textContent = t('loadedPack', {
+          count: stretchLibrary.length,
+          source: actionLibraryMeta?.source || 'seed/local',
+        });
+      }
     });
   }
 
@@ -1225,7 +1316,7 @@ function bindEvents() {
     packLoadFile.addEventListener('click', async () => {
       const file = packFile?.files?.[0];
       if (!file) {
-        if (packMsg) packMsg.textContent = 'Select a JSON file first.';
+        if (packMsg) packMsg.textContent = t('selectJsonFirst');
         return;
       }
       try {
@@ -1234,11 +1325,41 @@ function bindEvents() {
         const loaded = loadActionLibrary({ mode: 'download-pack', externalPack: parsed });
         applyActionLibrary(loaded);
         state.settings.actionPackMode = 'file';
+        state.actionPackCache = {
+          pack: loaded.meta?.rawPack || parsed,
+          source: 'file/local',
+          url: '',
+          loadedAt: new Date().toISOString(),
+        };
         saveState(state);
         persistAndRender();
+        if (packMsg) packMsg.textContent = t('cacheReady', { source: state.actionPackCache.source });
       } catch {
-        if (packMsg) packMsg.textContent = 'Invalid pack file. Kept current pack.';
+        if (packMsg) packMsg.textContent = t('invalidPackFile');
       }
+    });
+  }
+
+  if (packUseCache) {
+    packUseCache.addEventListener('click', () => {
+      if (!state.actionPackCache?.pack) {
+        if (packMsg) packMsg.textContent = t('noCacheAvailable');
+        return;
+      }
+      const loaded = loadActionLibrary({ mode: 'download-pack', externalPack: state.actionPackCache.pack });
+      applyActionLibrary(loaded);
+      state.settings.actionPackMode = 'file';
+      saveState(state);
+      persistAndRender();
+    });
+  }
+
+  if (packClearCache) {
+    packClearCache.addEventListener('click', () => {
+      state.actionPackCache = null;
+      saveState(state);
+      if (packMsg) packMsg.textContent = t('cacheCleared');
+      persistAndRender();
     });
   }
 
