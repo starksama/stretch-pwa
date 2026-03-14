@@ -1205,11 +1205,11 @@ function syncGuidedTimer() {
     }
 
     saveState(state);
-    refreshGuidedLiveElements();
+    refreshGuidedLiveElements({ tickOnly: true });
   }, 1000);
 }
 
-function refreshGuidedLiveElements() {
+function refreshGuidedLiveElements({ tickOnly = false } = {}) {
   const session = state.guidedSession;
   if (!session) return;
 
@@ -1238,25 +1238,26 @@ function refreshGuidedLiveElements() {
   const stretchPercent = Math.round(((activeStretch.durationSec - session.remainingSec) / activeStretch.durationSec) * 100);
   const sessionPercent = Math.round(getGuidedSessionProgress(session) * 100);
 
-  if (statusEl) statusEl.textContent = `${session.sourceLabel} · ${statusLabel}`;
-  if (titleEl) titleEl.textContent = activeStretch.name;
-  if (timeEl) timeEl.textContent = formatTimer(session.remainingSec);
-  if (stepEl) {
-    stepEl.textContent = t('stretchProgress', {
+  if (!tickOnly) {
+    setNodeText(statusEl, `${session.sourceLabel} · ${statusLabel}`);
+    setNodeText(titleEl, activeStretch.name);
+    setNodeText(stepEl, t('stretchProgress', {
       index: session.currentIndex + 1,
       total: totalStretches,
       completed,
-    });
+    }));
+    setNodeText(nextEl, nextLabel);
+    if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
+    if (toggleBtn) setNodeText(toggleBtn, session.isRunning ? t('pause') : t('resume'));
+    if (dockStatus) setNodeText(dockStatus, statusLabel);
+    if (dockStep) setNodeText(dockStep, t('currentStep', { name: activeStretch.name }));
+    if (dockTrack) dockTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
+    if (dockToggleBtn) setNodeText(dockToggleBtn, session.isRunning ? t('pause') : t('resume'));
   }
-  if (nextEl) nextEl.textContent = nextLabel;
+
+  setNodeText(timeEl, formatTimer(session.remainingSec));
+  setNodeText(dockTime, formatTimer(session.remainingSec));
   if (stretchTrack) stretchTrack.style.width = `${Math.max(0, Math.min(stretchPercent, 100))}%`;
-  if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
-  if (toggleBtn) toggleBtn.textContent = session.isRunning ? t('pause') : t('resume');
-  if (dockStatus) dockStatus.textContent = statusLabel;
-  if (dockStep) dockStep.textContent = t('currentStep', { name: activeStretch.name });
-  if (dockTime) dockTime.textContent = formatTimer(session.remainingSec);
-  if (dockTrack) dockTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
-  if (dockToggleBtn) dockToggleBtn.textContent = session.isRunning ? t('pause') : t('resume');
 }
 
 function completeGuidedStep() {
@@ -1423,4 +1424,22 @@ function escapeHtml(value) {
     .join('&quot;')
     .split("'")
     .join('&#39;');
+}
+
+function setNodeText(element, value) {
+  if (!element) return;
+  const next = String(value);
+  if (
+    element.childNodes.length === 1 &&
+    element.firstChild &&
+    element.firstChild.nodeType === Node.TEXT_NODE
+  ) {
+    if (element.firstChild.nodeValue !== next) {
+      element.firstChild.nodeValue = next;
+    }
+    return;
+  }
+  if (element.textContent !== next) {
+    element.textContent = next;
+  }
 }
