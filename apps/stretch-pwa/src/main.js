@@ -26,6 +26,7 @@ let hasFatalError = false;
 let hasSwReloaded = false;
 let pendingRoutineDeleteId = null;
 let pendingHistoryClear = false;
+let pendingGuidedEndConfirm = false;
 
 setupGlobalErrorHandling();
 bootstrap();
@@ -362,7 +363,14 @@ function renderGuidedSessionCard(guidedProgress) {
         <button class="ghost-btn" id="guided-plus">+10s</button>
         <button class="ghost-btn" id="guided-toggle">${session.isRunning ? 'Pause' : 'Resume'}</button>
         <button class="ghost-btn" id="guided-skip">Skip</button>
-        <button class="ghost-btn" id="guided-end">Finish now</button>
+        ${
+          pendingGuidedEndConfirm
+            ? `
+        <button class="ghost-btn danger-btn" id="guided-end-confirm">Confirm finish</button>
+        <button class="ghost-btn" id="guided-end-cancel">Cancel</button>
+        `
+            : '<button class="ghost-btn" id="guided-end">Finish now</button>'
+        }
       </div>
     </section>
   `;
@@ -503,6 +511,7 @@ function bindEvents() {
       });
       if (!nextSession) return;
       state.guidedSession = { ...nextSession, isRunning: true };
+      pendingGuidedEndConfirm = false;
       persistAndRender();
     });
   }
@@ -541,6 +550,7 @@ function bindEvents() {
       if (!nextSession) return;
       pendingRoutineDeleteId = null;
       state.guidedSession = { ...nextSession, isRunning: true };
+      pendingGuidedEndConfirm = false;
       persistAndRender();
     });
   });
@@ -638,6 +648,22 @@ function bindEvents() {
   const guidedEnd = appRoot.querySelector('#guided-end');
   if (guidedEnd) {
     guidedEnd.addEventListener('click', () => {
+      pendingGuidedEndConfirm = true;
+      persistAndRender();
+    });
+  }
+
+  const guidedEndCancel = appRoot.querySelector('#guided-end-cancel');
+  if (guidedEndCancel) {
+    guidedEndCancel.addEventListener('click', () => {
+      pendingGuidedEndConfirm = false;
+      persistAndRender();
+    });
+  }
+
+  const guidedEndConfirm = appRoot.querySelector('#guided-end-confirm');
+  if (guidedEndConfirm) {
+    guidedEndConfirm.addEventListener('click', () => {
       if (!state.guidedSession) return;
       const session = state.guidedSession;
       const merged = new Set([
@@ -651,6 +677,7 @@ function bindEvents() {
         total: session.stretchIds.length,
         endedReason: 'manual stop',
       });
+      pendingGuidedEndConfirm = false;
       state.guidedSession = null;
       persistAndRender();
     });
@@ -941,6 +968,7 @@ function appendSessionHistory({ sourceLabel, completed, total, endedReason }) {
 
   state.sessionHistory = [nextEntry, ...(state.sessionHistory || [])].slice(0, 30);
   pendingHistoryClear = false;
+  pendingGuidedEndConfirm = false;
 }
 
 function playCompletionCue(cueMode) {
