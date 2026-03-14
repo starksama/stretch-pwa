@@ -24,6 +24,7 @@ let guidedTimerId = null;
 let routineEditorId = null;
 let hasFatalError = false;
 let hasSwReloaded = false;
+let pendingRoutineDeleteId = null;
 
 setupGlobalErrorHandling();
 bootstrap();
@@ -273,7 +274,14 @@ function render({ completedCount, completionRatio, guidedProgress }) {
             <div class="routine-actions">
               <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">Start</button>
               <button class="ghost-btn" data-action="edit-routine" data-id="${routine.id}">Edit</button>
-              <button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">Delete</button>
+              ${
+                pendingRoutineDeleteId === routine.id
+                  ? `
+              <button class="ghost-btn danger-btn" data-action="confirm-delete-routine" data-id="${routine.id}">Confirm delete</button>
+              <button class="ghost-btn" data-action="cancel-delete-routine" data-id="${routine.id}">Cancel</button>
+              `
+                  : `<button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">Delete</button>`
+              }
             </div>
           </li>
         `
@@ -517,6 +525,7 @@ function bindEvents() {
         stretchById,
       });
       if (!nextSession) return;
+      pendingRoutineDeleteId = null;
       state.guidedSession = { ...nextSession, isRunning: true };
       persistAndRender();
     });
@@ -528,17 +537,34 @@ function bindEvents() {
       const routine = state.customRoutines.find((item) => item.id === routineId);
       if (!routine) return;
       routineEditorId = routine.id;
+      pendingRoutineDeleteId = null;
       persistAndRender();
     });
   });
 
   appRoot.querySelectorAll('[data-action="delete-routine"]').forEach((button) => {
     button.addEventListener('click', () => {
+      pendingRoutineDeleteId = button.dataset.id;
+      persistAndRender();
+    });
+  });
+
+  appRoot.querySelectorAll('[data-action="cancel-delete-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (pendingRoutineDeleteId !== button.dataset.id) return;
+      pendingRoutineDeleteId = null;
+      persistAndRender();
+    });
+  });
+
+  appRoot.querySelectorAll('[data-action="confirm-delete-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
       const routineId = button.dataset.id;
       state.customRoutines = state.customRoutines.filter((routine) => routine.id !== routineId);
       if (routineEditorId === routineId) {
         routineEditorId = null;
       }
+      pendingRoutineDeleteId = null;
       if (state.guidedSession?.id === routineId) {
         state.guidedSession = null;
       }
@@ -646,6 +672,7 @@ function bindEvents() {
         state.customRoutines = [createRoutine(name, selected), ...state.customRoutines];
         msgEl.textContent = 'Routine saved.';
       }
+      pendingRoutineDeleteId = null;
 
       form.reset();
       persistAndRender();
