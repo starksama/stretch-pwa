@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 
 const target = process.argv[2] || 'http://127.0.0.1:4174';
+const ticks = Number(process.argv[3] || 12);
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
@@ -16,7 +17,17 @@ try {
       rootChildList: 0,
       rootSubtreeChildList: 0,
       charData: 0,
+      cls: 0,
     };
+    window.__tickTimes = [];
+    const clsObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) {
+          window.__antiFlash.cls += entry.value;
+        }
+      }
+    });
+    clsObserver.observe({ type: 'layout-shift', buffered: true });
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList' && mutation.target === app) {
@@ -32,10 +43,18 @@ try {
     });
     observer.observe(app, { childList: true, subtree: true, characterData: true });
     window.__antiFlashFirst = app.firstElementChild;
-    window.__antiFlashTimeStart = document.querySelector('[data-guided-time]')?.textContent || '';
+    const start = document.querySelector('[data-guided-time]')?.textContent || '';
+    window.__antiFlashTimeStart = start;
+    window.__tickTimes.push(start);
   });
 
-  await page.waitForTimeout(4200);
+  for (let i = 0; i < ticks; i += 1) {
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => {
+      const value = document.querySelector('[data-guided-time]')?.textContent || '';
+      window.__tickTimes.push(value);
+    });
+  }
 
   const result = await page.evaluate(() => {
     const app = document.querySelector('#app');
@@ -43,6 +62,7 @@ try {
       sameFirst: app.firstElementChild === window.__antiFlashFirst,
       timeStart: window.__antiFlashTimeStart,
       timeEnd: document.querySelector('[data-guided-time]')?.textContent || '',
+      tickTimes: window.__tickTimes || [],
       mutations: window.__antiFlash,
       debug: window.__stretchDebug || null,
     };
@@ -52,6 +72,8 @@ try {
     result.sameFirst &&
     result.mutations.rootChildList === 0 &&
     result.mutations.rootSubtreeChildList === 0 &&
+    Number(result.mutations.cls || 0) === 0 &&
+    result.tickTimes.length >= ticks + 1 &&
     Number(result.debug?.renderDuringGuidedTicks || 0) === 0;
 
   console.log(JSON.stringify(result, null, 2));

@@ -537,10 +537,22 @@ function render({ completedCount, completionRatio, guidedProgress }) {
     </section>
   `;
 
+  let activeView = '';
+  if (activeTab === 'today') activeView = todaySection;
+  if (activeTab === 'guided') activeView = renderGuidedSessionCard(guidedProgress);
+  if (activeTab === 'routines') activeView = routinesSection;
+  if (activeTab === 'history') activeView = renderSessionHistoryCard();
+  if (activeTab === 'settings') {
+    activeView = `${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}`;
+  }
+
   appRoot.innerHTML = `
-    <section class="card">
-      <header class="section-head">
-        <h2>${t('appTitle')}</h2>
+    <div class="app-shell">
+      <header class="app-topbar">
+        <div class="app-topbar-copy">
+          <h2>${t('appTitle')}</h2>
+          <p class="muted">${t('tabHint')}</p>
+        </div>
         <label class="stack-field lang-switch">
           ${t('language')}
           <select id="language-select">
@@ -549,22 +561,20 @@ function render({ completedCount, completionRatio, guidedProgress }) {
           </select>
         </label>
       </header>
-      <p class="muted">${t('tabHint')}</p>
-      <nav class="tab-nav">
+
+      <section class="app-view" data-active-tab="${activeTab}">
+        ${activeView}
+        ${activeTab !== 'guided' ? renderGuidedDock(guidedProgress) : ''}
+      </section>
+
+      <nav class="tab-nav app-tabbar">
         ${tabButton('today', t('today'))}
         ${tabButton('guided', t('guided'))}
         ${tabButton('routines', t('routines'))}
         ${tabButton('history', t('history'))}
         ${tabButton('settings', t('settings'))}
       </nav>
-    </section>
-
-    ${activeTab === 'today' ? todaySection : ''}
-    ${activeTab === 'guided' ? renderGuidedSessionCard(guidedProgress) : ''}
-    ${activeTab === 'routines' ? routinesSection : ''}
-    ${activeTab === 'history' ? renderSessionHistoryCard() : ''}
-    ${activeTab === 'settings' ? `${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}` : ''}
-    ${activeTab !== 'guided' ? renderGuidedDock(guidedProgress) : ''}
+    </div>
   `;
 
   bindEvents();
