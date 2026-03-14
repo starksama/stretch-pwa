@@ -78,6 +78,21 @@ export function completeCurrentStretch(session, stretchById) {
   };
 }
 
+export function rewindGuidedStep(session, stretchById) {
+  if (!session?.stretchIds?.length) return session;
+  const targetIndex = Math.max(session.currentIndex - 1, 0);
+  const targetId = session.stretchIds[targetIndex];
+  const targetDuration = stretchById[targetId]?.durationSec || session.remainingSec;
+  const nextCompleted = session.completedStretchIds.filter((id) => id !== targetId);
+
+  return {
+    ...session,
+    currentIndex: targetIndex,
+    remainingSec: targetDuration,
+    completedStretchIds: [...new Set(nextCompleted)],
+  };
+}
+
 export function getGuidedSessionProgress(session) {
   if (!session) return 0;
   return Math.min(session.completedStretchIds.length / session.stretchIds.length, 1);

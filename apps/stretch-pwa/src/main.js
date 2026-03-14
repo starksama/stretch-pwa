@@ -9,6 +9,7 @@ import {
   completeCurrentStretch,
   createGuidedSession,
   getGuidedSessionProgress,
+  rewindGuidedStep,
   tickGuidedSession,
 } from './lib/domain/session.js';
 import { clearState, loadState, saveState } from './lib/storage/localStore.js';
@@ -134,6 +135,7 @@ const I18N = {
     activeSession: 'Active Session',
     returnGuided: 'Open Guided',
     currentStep: 'Current: {name}',
+    undoStep: 'Undo Last',
   },
   'zh-TW': {
     today: '今日',
@@ -238,6 +240,7 @@ const I18N = {
     activeSession: '進行中流程',
     returnGuided: '開啟引導',
     currentStep: '目前：{name}',
+    undoStep: '上一步',
   },
 };
 
@@ -624,6 +627,7 @@ function renderGuidedSessionCard(guidedProgress) {
         <button class="ghost-btn" id="guided-minus">${t('minus10')}</button>
         <button class="ghost-btn" id="guided-plus">${t('plus10')}</button>
         <button class="ghost-btn" id="guided-toggle">${session.isRunning ? t('pause') : t('resume')}</button>
+        <button class="ghost-btn" id="guided-undo">${t('undoStep')}</button>
         <button class="ghost-btn" id="guided-skip">${t('skip')}</button>
         ${
           pendingGuidedEndConfirm
@@ -970,6 +974,13 @@ function bindEvents() {
     });
   }
 
+  const guidedUndo = appRoot.querySelector('#guided-undo');
+  if (guidedUndo) {
+    guidedUndo.addEventListener('click', () => {
+      undoGuidedStep();
+    });
+  }
+
   const guidedMinus = appRoot.querySelector('#guided-minus');
   if (guidedMinus) {
     guidedMinus.addEventListener('click', () => {
@@ -1268,6 +1279,18 @@ function completeGuidedStep() {
     });
   }
   state.guidedSession = result.nextSession ? { ...result.nextSession, isRunning: true } : null;
+  persistAndRender();
+}
+
+function undoGuidedStep() {
+  if (!state.guidedSession) return;
+  const rewindId = state.guidedSession.stretchIds[Math.max(state.guidedSession.currentIndex - 1, 0)];
+  state.guidedSession = rewindGuidedStep(state.guidedSession, stretchById);
+  if (rewindId) {
+    state.progressByDate[todayDateKey].completedStretchIds = state.progressByDate[todayDateKey].completedStretchIds.filter(
+      (id) => id !== rewindId
+    );
+  }
   persistAndRender();
 }
 
