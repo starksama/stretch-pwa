@@ -96,6 +96,8 @@ function persistAndRender() {
 
   if (hasCompletedPlan(todayProgress, plan.stretches.length) && !state.completedDates.includes(todayDateKey)) {
     state.completedDates.push(todayDateKey);
+  } else if (!hasCompletedPlan(todayProgress, plan.stretches.length)) {
+    state.completedDates = state.completedDates.filter((dateKey) => dateKey !== todayDateKey);
   }
 
   state.completedDates = Array.from(new Set(state.completedDates)).sort();
@@ -198,8 +200,14 @@ function render({ completedCount, completionRatio, guidedProgress }) {
 
     <section class="card enter-up delay-2">
       <header class="section-head">
-        <h2>Daily Plan</h2>
-        <p class="muted">${completedCount}/${plan.stretches.length} done</p>
+        <div class="stack-head">
+          <h2>Daily Plan</h2>
+          <p class="muted">${completedCount}/${plan.stretches.length} done</p>
+        </div>
+        <div class="inline-actions">
+          <button class="ghost-btn" id="daily-complete-all">Complete all</button>
+          <button class="ghost-btn" id="daily-reset">Reset day</button>
+        </div>
       </header>
       <ul class="stretch-list">
         ${plan.stretches
@@ -437,6 +445,28 @@ function renderSessionCueCard() {
 }
 
 function bindEvents() {
+  const completeAll = appRoot.querySelector('#daily-complete-all');
+  if (completeAll) {
+    completeAll.addEventListener('click', () => {
+      const merged = new Set([
+        ...state.progressByDate[todayDateKey].completedStretchIds,
+        ...plan.stretches.map((stretch) => stretch.id),
+      ]);
+      state.progressByDate[todayDateKey].completedStretchIds = [...merged];
+      state.progressByDate[todayDateKey].lastUpdatedAt = new Date().toISOString();
+      persistAndRender();
+    });
+  }
+
+  const resetDay = appRoot.querySelector('#daily-reset');
+  if (resetDay) {
+    resetDay.addEventListener('click', () => {
+      state.progressByDate[todayDateKey].completedStretchIds = [];
+      state.progressByDate[todayDateKey].lastUpdatedAt = new Date().toISOString();
+      persistAndRender();
+    });
+  }
+
   const recoveryStart = appRoot.querySelector('#recovery-start');
   if (recoveryStart) {
     recoveryStart.addEventListener('click', () => {
