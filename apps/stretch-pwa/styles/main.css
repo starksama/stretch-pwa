@@ -58,7 +58,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 8;
-  background: color-mix(in srgb, var(--card) 94%, #f4fbf5 6%);
+  background: #ffffff;
   border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 12px 14px;
@@ -82,7 +82,7 @@ body {
 }
 
 .card {
-  background: color-mix(in srgb, var(--card) 92%, #f4fbf5 8%);
+  background: #ffffff;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
@@ -272,7 +272,7 @@ h3 {
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   border-radius: 18px;
-  background: color-mix(in srgb, var(--card) 92%, #f4fbf5 8%);
+  background: #ffffff;
   box-shadow: var(--shadow);
 }
 
@@ -487,7 +487,7 @@ h3 {
 .guided-dock {
   position: relative;
   border: 1px solid rgba(15, 95, 79, 0.2);
-  background: color-mix(in srgb, var(--card) 95%, #f4fbf5 5%);
+  background: #ffffff;
 }
 
 .today-focus-grid {
