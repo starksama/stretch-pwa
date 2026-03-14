@@ -388,40 +388,34 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       <img src="./assets/illustration-stretch.svg" class="hero-art" alt="Abstract stretching illustration" />
     </section>
 
-    <section class="stats-grid enter-up delay-1">
-      <article class="card stat-card">
-        <div class="ring" role="img" aria-label="${Math.round(completionRatio * 100)} percent complete">
-          <svg viewBox="0 0 100 100">
-            <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="ring-fg" cx="50" cy="50" r="45" style="stroke-dasharray: ${ringDash} 283"></circle>
-          </svg>
-          <span>${Math.round(completionRatio * 100)}%</span>
-        </div>
-        <p class="muted">${t('dailyPlan')}</p>
-      </article>
-      <article class="card stat-card">
-        <p class="stat-value">${streak}</p>
-        <p class="muted">${t('streakLabel')}</p>
-      </article>
-      <article class="card stat-card">
-        <p class="stat-value">${state.customRoutines.length}</p>
-        <p class="muted">${t('routines')}</p>
-      </article>
-    </section>
-
     <section class="card enter-up delay-2">
       <header class="section-head">
-        <div class="stack-head">
-          <h2>${t('dailyPlan')}</h2>
-          <p class="muted">${t('doneCount', { done: completedCount, total: plan.stretches.length })}</p>
-        </div>
-        <div class="inline-actions">
-          <button class="ghost-btn" id="daily-complete-all">${t('completeAll')}</button>
-          <button class="ghost-btn" id="daily-reset">${t('resetDay')}</button>
-        </div>
+        <h2>${t('dailyPlan')}</h2>
+        <p class="muted">${t('doneCount', { done: completedCount, total: plan.stretches.length })}</p>
       </header>
-      <ul class="stretch-list">
+      <div class="today-focus-grid">
+        <article class="stat-card compact">
+          <div class="ring" role="img" aria-label="${Math.round(completionRatio * 100)} percent complete">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-fg" cx="50" cy="50" r="45" style="stroke-dasharray: ${ringDash} 283"></circle>
+            </svg>
+            <span>${Math.round(completionRatio * 100)}%</span>
+          </div>
+          <p class="muted">${t('dailyPlan')}</p>
+        </article>
+        <article class="stat-card compact">
+          <p class="stat-value">${streak}</p>
+          <p class="muted">${t('streakLabel')}</p>
+        </article>
+      </div>
+      <div class="guided-actions top-gap">
+        <button class="primary-btn" id="today-start-guided">${t('startGuided')}</button>
+        <button class="ghost-btn" data-action="switch-tab" data-tab="routines">${t('routines')}</button>
+      </div>
+      <ul class="stretch-list compact">
         ${plan.stretches
+          .slice(0, 3)
           .map((item) => {
             const checked = state.progressByDate[todayDateKey].completedStretchIds.includes(item.id);
             return `
@@ -433,7 +427,6 @@ function render({ completedCount, completionRatio, guidedProgress }) {
                   </span>
                   <span class="pill">${checked ? t('done') : t('mark')}</span>
                 </button>
-                <p class="cues">${item.cues.join(' · ')}</p>
               </li>
             `;
           })
@@ -818,6 +811,25 @@ function bindEvents() {
   }
 
   const guidedStart = appRoot.querySelector('#guided-start');
+  const todayStartGuided = appRoot.querySelector('#today-start-guided');
+  if (todayStartGuided) {
+    todayStartGuided.addEventListener('click', () => {
+      const nextSession = createGuidedSession({
+        sessionId: plan.id,
+        dateKey: todayDateKey,
+        sourceLabel: t('dailyPlanLabel'),
+        stretchIds: plan.stretches.map((stretch) => stretch.id),
+        completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
+        stretchById,
+      });
+      if (!nextSession) return;
+      state.guidedSession = { ...nextSession, isRunning: true };
+      activeTab = 'guided';
+      state.settings.lastTab = 'guided';
+      persistAndRender();
+    });
+  }
+
   if (guidedStart) {
     guidedStart.addEventListener('click', () => {
       const nextSession = createGuidedSession({

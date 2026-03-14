@@ -75,6 +75,7 @@ body {
 .app-view {
   display: grid;
   gap: 14px;
+  padding-bottom: 8px;
 }
 
 .card {
@@ -483,11 +484,29 @@ h3 {
 }
 
 .guided-dock {
-  position: sticky;
-  bottom: calc(env(safe-area-inset-bottom) + 88px);
-  z-index: 5;
+  position: relative;
   border: 1px solid rgba(15, 95, 79, 0.2);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--card) 95%, #f4fbf5 5%);
+}
+
+.today-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-card.compact {
+  border: 1px solid rgba(16, 35, 32, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.stretch-list.compact .stretch-item {
+  padding: 8px;
+}
+
+.top-gap {
+  margin-top: 12px;
 }
 
 .progress-track {
@@ -597,6 +616,10 @@ h3 {
 
   .app-topbar .lang-switch {
     width: 100%;
+  }
+
+  .today-focus-grid {
+    grid-template-columns: 1fr;
   }
 
   .stats-grid {
