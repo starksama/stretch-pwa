@@ -1355,7 +1355,10 @@ function registerServiceWorker() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hasSwReloaded) return;
       hasSwReloaded = true;
-      window.location.reload();
+      const msg = appRoot?.querySelector('#sync-msg');
+      if (msg) {
+        msg.textContent = 'App update ready. Reopen app when convenient.';
+      }
     });
   });
 }
