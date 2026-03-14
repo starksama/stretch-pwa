@@ -27,6 +27,228 @@ let hasSwReloaded = false;
 let pendingRoutineDeleteId = null;
 let pendingHistoryClear = false;
 let pendingGuidedEndConfirm = false;
+let activeTab = 'today';
+const APP_TABS = ['today', 'guided', 'routines', 'history', 'settings'];
+
+const I18N = {
+  en: {
+    today: 'Today',
+    guided: 'Guided',
+    routines: 'Routines',
+    history: 'History',
+    settings: 'Settings',
+    dailyPlan: 'Daily Plan',
+    doneCount: '{done}/{total} done',
+    completeAll: 'Complete all',
+    resetDay: 'Reset day',
+    weeklyConsistency: 'Weekly Consistency',
+    weeklyGoal: 'Weekly goal',
+    daysLabel: '{done}/{goal} days',
+    goalReached: 'Goal reached',
+    goalReachedMsg: 'Weekly target achieved. Keep the streak alive.',
+    guidedSession: 'Guided Session',
+    startGuided: 'Start guided session',
+    running: 'Running',
+    paused: 'Paused',
+    finishNow: 'Finish now',
+    confirmFinish: 'Confirm finish',
+    cancel: 'Cancel',
+    skip: 'Skip',
+    resume: 'Resume',
+    pause: 'Pause',
+    nextUp: 'Next: {name}',
+    noNext: 'Final step',
+    routinesTitle: 'Build Routine',
+    routinesSubtitle: 'Save reusable stretch combos',
+    editRoutine: 'Edit Routine',
+    updateRoutine: 'Update and save changes',
+    saveRoutine: 'Save routine',
+    saveChanges: 'Save changes',
+    cancelEdit: 'Cancel edit',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    confirmDelete: 'Confirm delete',
+    start: 'Start',
+    recentSessions: 'Recent Sessions',
+    noSessions: 'No sessions yet',
+    clearHistory: 'Clear history',
+    confirmClear: 'Confirm clear',
+    settingsTitle: 'Settings',
+    language: 'Language',
+    cues: 'Session Cues',
+    cueType: 'Cue type',
+    testCue: 'Test cue',
+    healthSync: 'Health Sync (Preview)',
+    recoveryReset: 'Recovery Reset',
+    tabHint: 'Quick switch across key flows',
+    onTrack: 'On track: {done}/{goal} days',
+    nextPreview: 'Next: {name}',
+    appTitle: 'Stretch Flow',
+    streakLabel: 'Streak',
+    eachSide: 'each side',
+    mark: 'Mark',
+    done: 'Done',
+    nameLabel: 'Name',
+    namePlaceholder: 'Example: Desk Reset',
+    selectStretches: 'Select stretches',
+    sessionFlow: '{minutes} min flow',
+    guidedDescription: 'Hands-free timer with smooth step transitions.',
+    stretchProgress: 'Stretch {index}/{total} · {completed}/{total} complete',
+    minus10: '-10s',
+    plus10: '+10s',
+    momentumProtected: 'Momentum protected',
+    noMissedDay: 'No missed day detected. Keep your rhythm.',
+    restartMinutes: '{minutes} min restart',
+    missedYesterdayDesc: 'Yesterday was missed. Run this short sequence to restart consistency.',
+    historyLast: 'Last {count}',
+    historyPopulate: 'Complete a guided flow to populate your recent history.',
+    sessionFallback: 'Session',
+    endedFallback: 'ended',
+    unknownTime: 'Unknown time',
+    cueFeedback: 'Feedback on stretch transitions',
+    cueCurrent: 'Current mode: {mode}',
+    cueTestPlayed: 'Cue test played ({mode}).',
+    cueOff: 'Off',
+    cueVibration: 'Vibration',
+    cueSound: 'Sound',
+    cueBoth: 'Vibration + Sound',
+    syncPreviewDesc: 'Scaffold only. External API hooks are TODO-marked.',
+    enableSyncScaffold: 'Enable sync scaffold',
+    runDrySync: 'Run dry sync',
+    noSyncYet: 'No sync run yet.',
+    scaffoldEnabled: 'Scaffold enabled.',
+    scaffoldDisabled: 'Scaffold disabled.',
+    runningDrySync: 'Running dry sync...',
+    syncSuccess: 'Sync success.',
+    enableSyncFirst: 'Enable sync scaffold first.',
+    syncSkipped: 'Dry sync skipped ({reason}).',
+    routineUpdated: 'Routine updated.',
+    routineSaved: 'Routine saved.',
+    recoveryLabel: 'Recovery Reset',
+    dailyPlanLabel: 'Daily Plan',
+    routinePrefix: 'Routine: {name}',
+    manualStop: 'manual stop',
+    completed: 'completed',
+    languageEnglish: 'English',
+    languageTraditionalChinese: 'Traditional Chinese',
+  },
+  'zh-TW': {
+    today: '今日',
+    guided: '引導',
+    routines: '自訂課表',
+    history: '紀錄',
+    settings: '設定',
+    dailyPlan: '今日計畫',
+    doneCount: '已完成 {done}/{total}',
+    completeAll: '全部完成',
+    resetDay: '重置今日',
+    weeklyConsistency: '本週一致性',
+    weeklyGoal: '每週目標',
+    daysLabel: '{done}/{goal} 天',
+    goalReached: '已達成目標',
+    goalReachedMsg: '本週目標已達成，保持連續！',
+    guidedSession: '引導模式',
+    startGuided: '開始引導',
+    running: '進行中',
+    paused: '已暫停',
+    finishNow: '立即結束',
+    confirmFinish: '確認結束',
+    cancel: '取消',
+    skip: '跳過',
+    resume: '繼續',
+    pause: '暫停',
+    nextUp: '下一個：{name}',
+    noNext: '最後一步',
+    routinesTitle: '建立課表',
+    routinesSubtitle: '儲存常用伸展組合',
+    editRoutine: '編輯課表',
+    updateRoutine: '更新並儲存',
+    saveRoutine: '儲存課表',
+    saveChanges: '儲存變更',
+    cancelEdit: '取消編輯',
+    duplicate: '複製',
+    delete: '刪除',
+    confirmDelete: '確認刪除',
+    start: '開始',
+    recentSessions: '最近紀錄',
+    noSessions: '目前沒有紀錄',
+    clearHistory: '清除紀錄',
+    confirmClear: '確認清除',
+    settingsTitle: '設定',
+    language: '語言',
+    cues: '提示回饋',
+    cueType: '提示類型',
+    testCue: '測試提示',
+    healthSync: '健康同步（預覽）',
+    recoveryReset: '恢復重啟',
+    tabHint: '快速切換主要功能',
+    onTrack: '本週進度 {done}/{goal}',
+    nextPreview: '下一步：{name}',
+    appTitle: 'Stretch Flow',
+    streakLabel: '連續天數',
+    eachSide: '每側',
+    mark: '標記',
+    done: '完成',
+    nameLabel: '名稱',
+    namePlaceholder: '例如：辦公桌重置',
+    selectStretches: '選擇動作',
+    sessionFlow: '{minutes} 分鐘流程',
+    guidedDescription: '免手動計時，平滑切換每個動作。',
+    stretchProgress: '動作 {index}/{total} · 已完成 {completed}/{total}',
+    minus10: '-10秒',
+    plus10: '+10秒',
+    momentumProtected: '節奏已維持',
+    noMissedDay: '昨天沒有漏掉訓練，維持目前節奏。',
+    restartMinutes: '{minutes} 分鐘重啟',
+    missedYesterdayDesc: '昨天中斷了，先完成這組短流程重啟習慣。',
+    historyLast: '最近 {count} 次',
+    historyPopulate: '完成一次引導流程後，這裡會顯示最近紀錄。',
+    sessionFallback: '訓練',
+    endedFallback: '結束',
+    unknownTime: '時間未知',
+    cueFeedback: '動作切換時的提示回饋',
+    cueCurrent: '目前模式：{mode}',
+    cueTestPlayed: '已播放提示（{mode}）。',
+    cueOff: '關閉',
+    cueVibration: '震動',
+    cueSound: '聲音',
+    cueBoth: '震動 + 聲音',
+    syncPreviewDesc: '僅提供整合骨架，外部 API 連接待完成。',
+    enableSyncScaffold: '啟用同步骨架',
+    runDrySync: '執行模擬同步',
+    noSyncYet: '尚未執行同步。',
+    scaffoldEnabled: '已啟用同步骨架。',
+    scaffoldDisabled: '已停用同步骨架。',
+    runningDrySync: '正在執行模擬同步...',
+    syncSuccess: '同步成功。',
+    enableSyncFirst: '請先啟用同步骨架。',
+    syncSkipped: '已略過模擬同步（{reason}）。',
+    routineUpdated: '課表已更新。',
+    routineSaved: '課表已儲存。',
+    recoveryLabel: '恢復重啟',
+    dailyPlanLabel: '每日計畫',
+    routinePrefix: '課表：{name}',
+    manualStop: '手動停止',
+    completed: '完成',
+    languageEnglish: '英文',
+    languageTraditionalChinese: '繁體中文',
+  },
+};
+
+function currentLanguage() {
+  return state.settings.language === 'zh-TW' ? 'zh-TW' : 'en';
+}
+
+function t(key, vars = {}) {
+  const lang = currentLanguage();
+  const source = I18N[lang] || I18N.en;
+  const fallback = I18N.en[key] || key;
+  let value = source[key] || fallback;
+  Object.entries(vars).forEach(([k, v]) => {
+    value = value.split(`{${k}}`).join(String(v));
+  });
+  return value;
+}
 
 setupGlobalErrorHandling();
 bootstrap();
@@ -40,6 +262,9 @@ function bootstrap() {
       };
     }
     state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
+    if (APP_TABS.includes(state.settings.lastTab)) {
+      activeTab = state.settings.lastTab;
+    }
 
     persistAndRender();
     registerServiceWorker();
@@ -133,12 +358,15 @@ function render({ completedCount, completionRatio, guidedProgress }) {
   const weeklyGoalAchieved = weeklyCompleteDays >= weeklyGoalDays;
   const weeklyRate = getCompletionRate(recentWindow);
 
-  appRoot.innerHTML = `
+  const tabButton = (tabId, label) =>
+    `<button class="tab-btn ${activeTab === tabId ? 'active' : ''}" data-action="switch-tab" data-tab="${tabId}">${label}</button>`;
+
+  const todaySection = `
     <section class="hero card enter-up">
       <div>
-        <p class="eyebrow">Today • ${plan.dateKey}</p>
-        <h1>Stretch Flow</h1>
-        <p class="muted">${capitalize(plan.focus)} focus · ${Math.ceil(plan.totalSeconds / 60)} min routine</p>
+        <p class="eyebrow">${t('today')} • ${plan.dateKey}</p>
+        <h1>${t('appTitle')}</h1>
+        <p class="muted">${capitalize(plan.focus)} · ${Math.ceil(plan.totalSeconds / 60)} min</p>
       </div>
       <img src="./assets/illustration-stretch.svg" class="hero-art" alt="Abstract stretching illustration" />
     </section>
@@ -152,22 +380,22 @@ function render({ completedCount, completionRatio, guidedProgress }) {
           </svg>
           <span>${Math.round(completionRatio * 100)}%</span>
         </div>
-        <p class="muted">Daily completion</p>
+        <p class="muted">${t('dailyPlan')}</p>
       </article>
       <article class="card stat-card">
         <p class="stat-value">${streak}</p>
-        <p class="muted">Day streak</p>
+        <p class="muted">${t('streakLabel')}</p>
       </article>
       <article class="card stat-card">
         <p class="stat-value">${state.customRoutines.length}</p>
-        <p class="muted">Custom routines</p>
+        <p class="muted">${t('routines')}</p>
       </article>
     </section>
 
     <section class="card enter-up delay-1">
       <header class="section-head">
-        <h2>Weekly Consistency</h2>
-        <p class="muted">${weeklyGoalAchieved ? 'Goal reached' : `${weeklyRate}% complete`}</p>
+        <h2>${t('weeklyConsistency')}</h2>
+        <p class="muted">${weeklyGoalAchieved ? t('goalReached') : `${weeklyRate}%`}</p>
       </header>
       <div class="weekly-grid" role="img" aria-label="Last 7 days completion">
         ${recentWindow
@@ -182,34 +410,30 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       </div>
       <div class="goal-row">
         <label class="stack-field goal-field">
-          Weekly goal
+          ${t('weeklyGoal')}
           <select id="weekly-goal">
             ${[3, 4, 5, 6, 7]
-              .map((days) => `<option value="${days}" ${weeklyGoalDays === days ? 'selected' : ''}>${days} days</option>`)
+              .map((days) => `<option value="${days}" ${weeklyGoalDays === days ? 'selected' : ''}>${days}</option>`)
               .join('')}
           </select>
         </label>
-        <p class="muted">${weeklyCompleteDays}/${weeklyGoalDays} days</p>
+        <p class="muted">${t('daysLabel', { done: weeklyCompleteDays, goal: weeklyGoalDays })}</p>
       </div>
       <div class="weekly-goal-track" aria-hidden="true">
         <span style="width:${Math.round(weeklyGoalProgress * 100)}%"></span>
       </div>
-      ${weeklyGoalAchieved ? '<p class=\"goal-achieved\">Weekly target achieved. Keep the streak alive.</p>' : ''}
+      ${weeklyGoalAchieved ? `<p class="goal-achieved">${t('goalReachedMsg')}</p>` : `<p class="muted">${t('onTrack', { done: weeklyCompleteDays, goal: weeklyGoalDays })}</p>`}
     </section>
-
-    ${renderSessionHistoryCard()}
     ${renderRecoveryCard({ missedYesterday, recoveryPlan })}
-    ${renderGuidedSessionCard(guidedProgress)}
-
     <section class="card enter-up delay-2">
       <header class="section-head">
         <div class="stack-head">
-          <h2>Daily Plan</h2>
-          <p class="muted">${completedCount}/${plan.stretches.length} done</p>
+          <h2>${t('dailyPlan')}</h2>
+          <p class="muted">${t('doneCount', { done: completedCount, total: plan.stretches.length })}</p>
         </div>
         <div class="inline-actions">
-          <button class="ghost-btn" id="daily-complete-all">Complete all</button>
-          <button class="ghost-btn" id="daily-reset">Reset day</button>
+          <button class="ghost-btn" id="daily-complete-all">${t('completeAll')}</button>
+          <button class="ghost-btn" id="daily-reset">${t('resetDay')}</button>
         </div>
       </header>
       <ul class="stretch-list">
@@ -221,9 +445,9 @@ function render({ completedCount, completionRatio, guidedProgress }) {
                 <button class="touch-btn" data-action="toggle-stretch" data-id="${item.id}">
                   <span>
                     <strong>${escapeHtml(item.name)}</strong>
-                    <small>${item.durationSec}s${item.sideAware ? ' · each side' : ''}</small>
+                    <small>${item.durationSec}s${item.sideAware ? ` · ${t('eachSide')}` : ''}</small>
                   </span>
-                  <span class="pill">${checked ? 'Done' : 'Mark'}</span>
+                  <span class="pill">${checked ? t('done') : t('mark')}</span>
                 </button>
                 <p class="cues">${item.cues.join(' · ')}</p>
               </li>
@@ -232,19 +456,21 @@ function render({ completedCount, completionRatio, guidedProgress }) {
           .join('')}
       </ul>
     </section>
+  `;
 
+  const routinesSection = `
     <section class="card enter-up delay-3">
       <header class="section-head">
-        <h2>${editingRoutine ? 'Edit Routine' : 'Build Routine'}</h2>
-        <p class="muted">${editingRoutine ? 'Update and save changes' : 'Save reusable stretch combos'}</p>
+        <h2>${editingRoutine ? t('editRoutine') : t('routinesTitle')}</h2>
+        <p class="muted">${editingRoutine ? t('updateRoutine') : t('routinesSubtitle')}</p>
       </header>
       <form id="routine-form" class="routine-form">
         <label>
-          Name
-          <input name="name" maxlength="40" placeholder="Example: Desk Reset" value="${escapeHtml(editingRoutine?.name || '')}" required />
+          ${t('nameLabel')}
+          <input name="name" maxlength="40" placeholder="${t('namePlaceholder')}" value="${escapeHtml(editingRoutine?.name || '')}" required />
         </label>
         <fieldset>
-          <legend>Select stretches</legend>
+          <legend>${t('selectStretches')}</legend>
           <div class="choice-grid">
             ${defaultStretchLibrary
               .map(
@@ -258,8 +484,8 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .join('')}
           </div>
         </fieldset>
-        <button type="submit" class="primary-btn">${editingRoutine ? 'Save changes' : 'Save routine'}</button>
-        ${editingRoutine ? '<button type="button" class="ghost-btn" id="routine-cancel">Cancel edit</button>' : ''}
+        <button type="submit" class="primary-btn">${editingRoutine ? t('saveChanges') : t('saveRoutine')}</button>
+        ${editingRoutine ? `<button type="button" class="ghost-btn" id="routine-cancel">${t('cancelEdit')}</button>` : ''}
         <p class="form-msg" id="routine-msg" aria-live="polite"></p>
       </form>
       <ul class="routine-list">
@@ -274,16 +500,16 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .map((name) => escapeHtml(name))
               .join(' · ')}</p>
             <div class="routine-actions">
-              <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">Start</button>
-              <button class="ghost-btn" data-action="duplicate-routine" data-id="${routine.id}">Duplicate</button>
-              <button class="ghost-btn" data-action="edit-routine" data-id="${routine.id}">Edit</button>
+              <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">${t('start')}</button>
+              <button class="ghost-btn" data-action="duplicate-routine" data-id="${routine.id}">${t('duplicate')}</button>
+              <button class="ghost-btn" data-action="edit-routine" data-id="${routine.id}">${t('editRoutine')}</button>
               ${
                 pendingRoutineDeleteId === routine.id
                   ? `
-              <button class="ghost-btn danger-btn" data-action="confirm-delete-routine" data-id="${routine.id}">Confirm delete</button>
-              <button class="ghost-btn" data-action="cancel-delete-routine" data-id="${routine.id}">Cancel</button>
+              <button class="ghost-btn danger-btn" data-action="confirm-delete-routine" data-id="${routine.id}">${t('confirmDelete')}</button>
+              <button class="ghost-btn" data-action="cancel-delete-routine" data-id="${routine.id}">${t('cancel')}</button>
               `
-                  : `<button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">Delete</button>`
+                  : `<button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">${t('delete')}</button>`
               }
             </div>
           </li>
@@ -292,9 +518,35 @@ function render({ completedCount, completionRatio, guidedProgress }) {
           .join('')}
       </ul>
     </section>
+  `;
 
-    ${renderSessionCueCard()}
-    ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}
+  appRoot.innerHTML = `
+    <section class="card">
+      <header class="section-head">
+        <h2>${t('appTitle')}</h2>
+        <label class="stack-field lang-switch">
+          ${t('language')}
+          <select id="language-select">
+            <option value="en" ${currentLanguage() === 'en' ? 'selected' : ''}>${t('languageEnglish')}</option>
+            <option value="zh-TW" ${currentLanguage() === 'zh-TW' ? 'selected' : ''}>${t('languageTraditionalChinese')}</option>
+          </select>
+        </label>
+      </header>
+      <p class="muted">${t('tabHint')}</p>
+      <nav class="tab-nav">
+        ${tabButton('today', t('today'))}
+        ${tabButton('guided', t('guided'))}
+        ${tabButton('routines', t('routines'))}
+        ${tabButton('history', t('history'))}
+        ${tabButton('settings', t('settings'))}
+      </nav>
+    </section>
+
+    ${activeTab === 'today' ? todaySection : ''}
+    ${activeTab === 'guided' ? renderGuidedSessionCard(guidedProgress) : ''}
+    ${activeTab === 'routines' ? routinesSection : ''}
+    ${activeTab === 'history' ? renderSessionHistoryCard() : ''}
+    ${activeTab === 'settings' ? `${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}` : ''}
   `;
 
   bindEvents();
@@ -304,16 +556,16 @@ function renderIntegrationCard() {
   return `
     <section class="card enter-up delay-3">
       <header class="section-head">
-        <h2>Health Sync (Preview)</h2>
-        <p class="muted">Scaffold only. External API hooks are TODO-marked.</p>
+        <h2>${t('healthSync')}</h2>
+        <p class="muted">${t('syncPreviewDesc')}</p>
       </header>
       <div class="integration-actions">
         <label class="switch-row">
-          <span>Enable sync scaffold</span>
+          <span>${t('enableSyncScaffold')}</span>
           <input type="checkbox" id="sync-enabled" ${state.settings.healthSyncEnabled ? 'checked' : ''} />
         </label>
-        <button class="ghost-btn" id="sync-now">Run dry sync</button>
-        <p class="muted" id="sync-msg">No sync run yet.</p>
+        <button class="ghost-btn" id="sync-now">${t('runDrySync')}</button>
+        <p class="muted" id="sync-msg">${t('noSyncYet')}</p>
       </div>
     </section>
   `;
@@ -330,46 +582,49 @@ function renderGuidedSessionCard(guidedProgress) {
     return `
       <section class="card guided-card enter-up delay-2">
         <header class="section-head">
-          <h2>Guided Session</h2>
-          <p class="muted">${totalMinutes} min flow</p>
+          <h2>${t('guidedSession')}</h2>
+          <p class="muted">${t('sessionFlow', { minutes: totalMinutes })}</p>
         </header>
-        <p class="muted">Hands-free stretch timer with auto-advance and completion sync.</p>
-        <button class="primary-btn" id="guided-start">Start guided session</button>
+        <p class="muted">${t('guidedDescription')}</p>
+        <button class="primary-btn" id="guided-start">${t('startGuided')}</button>
       </section>
     `;
   }
 
   const sessionPercent = Math.round(guidedProgress * 100);
   const stretchPercent = Math.round(((activeStretch.durationSec - session.remainingSec) / activeStretch.durationSec) * 100);
-  const statusLabel = session.isRunning ? 'Running' : 'Paused';
+  const statusLabel = session.isRunning ? t('running') : t('paused');
+  const nextStretch = stretchById[session.stretchIds[session.currentIndex + 1]];
+  const nextLabel = nextStretch ? t('nextPreview', { name: nextStretch.name }) : t('noNext');
 
   return `
     <section class="card guided-card enter-up delay-2">
       <header class="section-head">
-        <h2>Guided Session</h2>
-        <p class="muted">${escapeHtml(session.sourceLabel)} · ${statusLabel}</p>
+        <h2>${t('guidedSession')}</h2>
+        <p class="muted" data-guided-status>${escapeHtml(session.sourceLabel)} · ${statusLabel}</p>
       </header>
-      <p class="guided-title">${escapeHtml(activeStretch.name)}</p>
-      <p class="guided-time">${formatTimer(session.remainingSec)}</p>
-      <p class="muted">Stretch ${session.currentIndex + 1}/${totalStretches} · ${completed}/${totalStretches} complete</p>
+      <p class="guided-title" data-guided-title>${escapeHtml(activeStretch.name)}</p>
+      <p class="guided-time" data-guided-time>${formatTimer(session.remainingSec)}</p>
+      <p class="muted" data-guided-step>${t('stretchProgress', { index: session.currentIndex + 1, total: totalStretches, completed })}</p>
+      <p class="muted" data-guided-next>${escapeHtml(nextLabel)}</p>
       <div class="progress-track" aria-hidden="true">
-        <span style="width:${Math.max(0, Math.min(stretchPercent, 100))}%"></span>
+        <span data-guided-stretch-track style="width:${Math.max(0, Math.min(stretchPercent, 100))}%"></span>
       </div>
       <div class="progress-track whole" aria-hidden="true">
-        <span style="width:${sessionPercent}%"></span>
+        <span data-guided-session-track style="width:${sessionPercent}%"></span>
       </div>
       <div class="guided-actions">
-        <button class="ghost-btn" id="guided-minus">-10s</button>
-        <button class="ghost-btn" id="guided-plus">+10s</button>
-        <button class="ghost-btn" id="guided-toggle">${session.isRunning ? 'Pause' : 'Resume'}</button>
-        <button class="ghost-btn" id="guided-skip">Skip</button>
+        <button class="ghost-btn" id="guided-minus">${t('minus10')}</button>
+        <button class="ghost-btn" id="guided-plus">${t('plus10')}</button>
+        <button class="ghost-btn" id="guided-toggle">${session.isRunning ? t('pause') : t('resume')}</button>
+        <button class="ghost-btn" id="guided-skip">${t('skip')}</button>
         ${
           pendingGuidedEndConfirm
             ? `
-        <button class="ghost-btn danger-btn" id="guided-end-confirm">Confirm finish</button>
-        <button class="ghost-btn" id="guided-end-cancel">Cancel</button>
+        <button class="ghost-btn danger-btn" id="guided-end-confirm">${t('confirmFinish')}</button>
+        <button class="ghost-btn" id="guided-end-cancel">${t('cancel')}</button>
         `
-            : '<button class="ghost-btn" id="guided-end">Finish now</button>'
+            : `<button class="ghost-btn" id="guided-end">${t('finishNow')}</button>`
         }
       </div>
     </section>
@@ -382,10 +637,10 @@ function renderRecoveryCard({ missedYesterday, recoveryPlan }) {
     return `
       <section class="card enter-up delay-2">
         <header class="section-head">
-          <h2>Recovery Reset</h2>
-          <p class="muted">Momentum protected</p>
+          <h2>${t('recoveryReset')}</h2>
+          <p class="muted">${t('momentumProtected')}</p>
         </header>
-        <p class="muted">No missed day detected. Keep your current rhythm.</p>
+        <p class="muted">${t('noMissedDay')}</p>
       </section>
     `;
   }
@@ -393,12 +648,12 @@ function renderRecoveryCard({ missedYesterday, recoveryPlan }) {
   return `
     <section class="card enter-up delay-2">
       <header class="section-head">
-        <h2>Recovery Reset</h2>
-        <p class="muted">${recoveryMinutes} min restart</p>
+        <h2>${t('recoveryReset')}</h2>
+        <p class="muted">${t('restartMinutes', { minutes: recoveryMinutes })}</p>
       </header>
-      <p class="muted">Yesterday was missed. Run this short sequence to restart consistency.</p>
+      <p class="muted">${t('missedYesterdayDesc')}</p>
       <p class="muted">${recoveryPlan.map((item) => escapeHtml(item.name)).join(' · ')}</p>
-      <button class="primary-btn" id="recovery-start">Start recovery session</button>
+      <button class="primary-btn" id="recovery-start">${t('startGuided')}</button>
     </section>
   `;
 }
@@ -409,10 +664,10 @@ function renderSessionHistoryCard() {
     return `
       <section class="card enter-up delay-2">
         <header class="section-head">
-          <h2>Recent Sessions</h2>
-          <p class="muted">No sessions yet</p>
+          <h2>${t('recentSessions')}</h2>
+          <p class="muted">${t('noSessions')}</p>
         </header>
-        <p class="muted">Complete a guided flow to populate your recent history.</p>
+        <p class="muted">${t('historyPopulate')}</p>
       </section>
     `;
   }
@@ -421,17 +676,17 @@ function renderSessionHistoryCard() {
     <section class="card enter-up delay-2">
       <header class="section-head">
         <div class="stack-head">
-          <h2>Recent Sessions</h2>
-          <p class="muted">Last ${history.length}</p>
+          <h2>${t('recentSessions')}</h2>
+          <p class="muted">${t('historyLast', { count: history.length })}</p>
         </div>
         <div class="inline-actions">
           ${
             pendingHistoryClear
               ? `
-          <button class="ghost-btn danger-btn" id="history-clear-confirm">Confirm clear</button>
-          <button class="ghost-btn" id="history-clear-cancel">Cancel</button>
+          <button class="ghost-btn danger-btn" id="history-clear-confirm">${t('confirmClear')}</button>
+          <button class="ghost-btn" id="history-clear-cancel">${t('cancel')}</button>
           `
-              : '<button class="ghost-btn" id="history-clear">Clear history</button>'
+              : `<button class="ghost-btn" id="history-clear">${t('clearHistory')}</button>`
           }
         </div>
       </header>
@@ -440,8 +695,8 @@ function renderSessionHistoryCard() {
           .map(
             (entry) => `
           <li>
-            <strong>${escapeHtml(entry.sourceLabel || 'Session')}</strong>
-            <small>${entry.completed || 0}/${entry.total || 0} · ${escapeHtml(entry.endedReason || 'ended')} · ${formatDateTime(entry.endedAt)}</small>
+            <strong>${escapeHtml(entry.sourceLabel || t('sessionFallback'))}</strong>
+            <small>${entry.completed || 0}/${entry.total || 0} · ${escapeHtml(entry.endedReason || t('endedFallback'))} · ${formatDateTime(entry.endedAt)}</small>
           </li>
         `
           )
@@ -456,25 +711,45 @@ function renderSessionCueCard() {
   return `
     <section class="card enter-up delay-3">
       <header class="section-head">
-        <h2>Session Cues</h2>
-        <p class="muted">Feedback on stretch transitions</p>
+        <h2>${t('cues')}</h2>
+        <p class="muted">${t('cueFeedback')}</p>
       </header>
       <label class="stack-field">
-        Cue type
+        ${t('cueType')}
         <select id="cue-mode">
-          <option value="off" ${cueMode === 'off' ? 'selected' : ''}>Off</option>
-          <option value="vibration" ${cueMode === 'vibration' ? 'selected' : ''}>Vibration</option>
-          <option value="sound" ${cueMode === 'sound' ? 'selected' : ''}>Sound</option>
-          <option value="both" ${cueMode === 'both' ? 'selected' : ''}>Vibration + Sound</option>
+          <option value="off" ${cueMode === 'off' ? 'selected' : ''}>${t('cueOff')}</option>
+          <option value="vibration" ${cueMode === 'vibration' ? 'selected' : ''}>${t('cueVibration')}</option>
+          <option value="sound" ${cueMode === 'sound' ? 'selected' : ''}>${t('cueSound')}</option>
+          <option value="both" ${cueMode === 'both' ? 'selected' : ''}>${t('cueBoth')}</option>
         </select>
       </label>
-      <button class="ghost-btn" id="cue-test">Test cue</button>
-      <p class="muted" id="cue-msg">Current mode: ${escapeHtml(cueMode)}</p>
+      <button class="ghost-btn" id="cue-test">${t('testCue')}</button>
+      <p class="muted" id="cue-msg">${t('cueCurrent', { mode: escapeHtml(cueMode) })}</p>
     </section>
   `;
 }
 
 function bindEvents() {
+  appRoot.querySelectorAll('[data-action="switch-tab"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const { tab } = button.dataset;
+      if (!APP_TABS.includes(tab)) return;
+      activeTab = tab;
+      state.settings.lastTab = tab;
+      saveState(state);
+      persistAndRender();
+    });
+  });
+
+  const languageSelect = appRoot.querySelector('#language-select');
+  if (languageSelect) {
+    languageSelect.addEventListener('change', () => {
+      state.settings.language = languageSelect.value === 'zh-TW' ? 'zh-TW' : 'en';
+      saveState(state);
+      persistAndRender();
+    });
+  }
+
   const completeAll = appRoot.querySelector('#daily-complete-all');
   if (completeAll) {
     completeAll.addEventListener('click', () => {
@@ -504,7 +779,7 @@ function bindEvents() {
       const nextSession = createGuidedSession({
         sessionId: `recovery-${todayDateKey}`,
         dateKey: todayDateKey,
-        sourceLabel: 'Recovery Reset',
+        sourceLabel: t('recoveryLabel'),
         stretchIds: recoveryPlan.map((item) => item.id),
         completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
         stretchById,
@@ -512,6 +787,10 @@ function bindEvents() {
       if (!nextSession) return;
       state.guidedSession = { ...nextSession, isRunning: true };
       pendingGuidedEndConfirm = false;
+      if (activeTab !== 'guided') {
+        activeTab = 'guided';
+        state.settings.lastTab = 'guided';
+      }
       persistAndRender();
     });
   }
@@ -522,13 +801,17 @@ function bindEvents() {
       const nextSession = createGuidedSession({
         sessionId: plan.id,
         dateKey: todayDateKey,
-        sourceLabel: 'Daily Plan',
+        sourceLabel: t('dailyPlanLabel'),
         stretchIds: plan.stretches.map((stretch) => stretch.id),
         completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
         stretchById,
       });
       if (!nextSession) return;
       state.guidedSession = { ...nextSession, isRunning: true };
+      if (activeTab !== 'guided') {
+        activeTab = 'guided';
+        state.settings.lastTab = 'guided';
+      }
       persistAndRender();
     });
   }
@@ -542,7 +825,7 @@ function bindEvents() {
       const nextSession = createGuidedSession({
         sessionId: routine.id,
         dateKey: todayDateKey,
-        sourceLabel: `Routine: ${routine.name}`,
+        sourceLabel: t('routinePrefix', { name: routine.name }),
         stretchIds: routine.stretchIds,
         completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
         stretchById,
@@ -551,6 +834,10 @@ function bindEvents() {
       pendingRoutineDeleteId = null;
       state.guidedSession = { ...nextSession, isRunning: true };
       pendingGuidedEndConfirm = false;
+      if (activeTab !== 'guided') {
+        activeTab = 'guided';
+        state.settings.lastTab = 'guided';
+      }
       persistAndRender();
     });
   });
@@ -675,7 +962,7 @@ function bindEvents() {
         sourceLabel: session.sourceLabel,
         completed: session.completedStretchIds.length,
         total: session.stretchIds.length,
-        endedReason: 'manual stop',
+        endedReason: t('manualStop'),
       });
       pendingGuidedEndConfirm = false;
       state.guidedSession = null;
@@ -726,11 +1013,11 @@ function bindEvents() {
               }
             : routine
         );
-        msgEl.textContent = 'Routine updated.';
+        msgEl.textContent = t('routineUpdated');
         routineEditorId = null;
       } else {
         state.customRoutines = [createRoutine(name, selected), ...state.customRoutines];
-        msgEl.textContent = 'Routine saved.';
+        msgEl.textContent = t('routineSaved');
       }
       pendingRoutineDeleteId = null;
 
@@ -762,13 +1049,13 @@ function bindEvents() {
     syncToggle.addEventListener('change', () => {
       state.settings.healthSyncEnabled = syncToggle.checked;
       saveState(state);
-      if (syncMsg) syncMsg.textContent = syncToggle.checked ? 'Scaffold enabled.' : 'Scaffold disabled.';
+      if (syncMsg) syncMsg.textContent = syncToggle.checked ? t('scaffoldEnabled') : t('scaffoldDisabled');
     });
   }
 
   if (syncButton && syncMsg) {
     syncButton.addEventListener('click', async () => {
-      syncMsg.textContent = 'Running dry sync...';
+      syncMsg.textContent = t('runningDrySync');
       const payload = {
         dateKey: todayDateKey,
         completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
@@ -782,11 +1069,11 @@ function bindEvents() {
       });
 
       if (result.ok) {
-        syncMsg.textContent = 'Sync success.';
+        syncMsg.textContent = t('syncSuccess');
       } else if (result.reason === 'feature_flag_disabled') {
-        syncMsg.textContent = 'Enable sync scaffold first.';
+        syncMsg.textContent = t('enableSyncFirst');
       } else {
-        syncMsg.textContent = `Dry sync skipped (${result.reason}).`;
+        syncMsg.textContent = t('syncSkipped', { reason: result.reason });
       }
     });
   }
@@ -795,14 +1082,14 @@ function bindEvents() {
     cueMode.addEventListener('change', () => {
       state.settings.cueMode = cueMode.value;
       saveState(state);
-      if (cueMsg) cueMsg.textContent = `Current mode: ${cueMode.value}`;
+      if (cueMsg) cueMsg.textContent = t('cueCurrent', { mode: cueMode.value });
     });
   }
 
   if (cueTest) {
     cueTest.addEventListener('click', () => {
       playCompletionCue(state.settings.cueMode);
-      if (cueMsg) cueMsg.textContent = `Cue test played (${state.settings.cueMode}).`;
+      if (cueMsg) cueMsg.textContent = t('cueTestPlayed', { mode: state.settings.cueMode });
     });
   }
 
@@ -855,13 +1142,49 @@ function syncGuidedTimer() {
     }
 
     saveState(state);
-    const tickCompletedCount = state.progressByDate[todayDateKey].completedStretchIds.length;
-    render({
-      completedCount: tickCompletedCount,
-      completionRatio: Math.min(tickCompletedCount / plan.stretches.length, 1),
-      guidedProgress: getGuidedSessionProgress(state.guidedSession),
-    });
+    refreshGuidedLiveElements();
   }, 1000);
+}
+
+function refreshGuidedLiveElements() {
+  if (activeTab !== 'guided') return;
+  const session = state.guidedSession;
+  if (!session) return;
+
+  const activeStretch = stretchById[session.stretchIds[session.currentIndex]];
+  if (!activeStretch) return;
+
+  const nextStretch = stretchById[session.stretchIds[session.currentIndex + 1]];
+  const statusEl = appRoot.querySelector('[data-guided-status]');
+  const titleEl = appRoot.querySelector('[data-guided-title]');
+  const timeEl = appRoot.querySelector('[data-guided-time]');
+  const stepEl = appRoot.querySelector('[data-guided-step]');
+  const nextEl = appRoot.querySelector('[data-guided-next]');
+  const stretchTrack = appRoot.querySelector('[data-guided-stretch-track]');
+  const sessionTrack = appRoot.querySelector('[data-guided-session-track]');
+  const toggleBtn = appRoot.querySelector('#guided-toggle');
+
+  const totalStretches = session.stretchIds.length || plan.stretches.length;
+  const completed = session.completedStretchIds.length;
+  const statusLabel = session.isRunning ? t('running') : t('paused');
+  const nextLabel = nextStretch ? t('nextPreview', { name: nextStretch.name }) : t('noNext');
+  const stretchPercent = Math.round(((activeStretch.durationSec - session.remainingSec) / activeStretch.durationSec) * 100);
+  const sessionPercent = Math.round(getGuidedSessionProgress(session) * 100);
+
+  if (statusEl) statusEl.textContent = `${session.sourceLabel} · ${statusLabel}`;
+  if (titleEl) titleEl.textContent = activeStretch.name;
+  if (timeEl) timeEl.textContent = formatTimer(session.remainingSec);
+  if (stepEl) {
+    stepEl.textContent = t('stretchProgress', {
+      index: session.currentIndex + 1,
+      total: totalStretches,
+      completed,
+    });
+  }
+  if (nextEl) nextEl.textContent = nextLabel;
+  if (stretchTrack) stretchTrack.style.width = `${Math.max(0, Math.min(stretchPercent, 100))}%`;
+  if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
+  if (toggleBtn) toggleBtn.textContent = session.isRunning ? t('pause') : t('resume');
 }
 
 function completeGuidedStep() {
@@ -880,7 +1203,7 @@ function completeGuidedStep() {
       sourceLabel: previousSession.sourceLabel,
       completed: result.completedStretchIds.length,
       total: previousSession.stretchIds.length,
-      endedReason: 'completed',
+      endedReason: t('completed'),
     });
   }
   state.guidedSession = result.nextSession ? { ...result.nextSession, isRunning: true } : null;
@@ -947,8 +1270,9 @@ function formatTimer(totalSec) {
 
 function formatDateTime(isoString) {
   const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) return 'Unknown time';
-  return date.toLocaleString('en-US', {
+  if (Number.isNaN(date.getTime())) return t('unknownTime');
+  const locale = currentLanguage() === 'zh-TW' ? 'zh-TW' : 'en-US';
+  return date.toLocaleString(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -959,10 +1283,10 @@ function formatDateTime(isoString) {
 function appendSessionHistory({ sourceLabel, completed, total, endedReason }) {
   const nextEntry = {
     id: `hist-${Date.now()}`,
-    sourceLabel,
-    completed,
-    total,
-    endedReason,
+      sourceLabel,
+      completed,
+      total,
+      endedReason,
     endedAt: new Date().toISOString(),
   };
 

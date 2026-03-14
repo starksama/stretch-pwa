@@ -10,6 +10,8 @@ const defaultState = {
     healthSyncEnabled: false,
     cueMode: 'vibration',
     weeklyGoalDays: 5,
+    language: 'en',
+    lastTab: 'today',
   },
 };
 
@@ -121,6 +123,14 @@ function sanitizeState(input) {
       weeklyGoalDays: Number.isFinite(Number(input.settings.weeklyGoalDays))
         ? Number(input.settings.weeklyGoalDays)
         : defaultState.settings.weeklyGoalDays,
+      language:
+        input.settings.language === 'zh-TW' || input.settings.language === 'en'
+          ? input.settings.language
+          : defaultState.settings.language,
+      lastTab:
+        ['today', 'guided', 'routines', 'history', 'settings'].includes(input.settings.lastTab)
+          ? input.settings.lastTab
+          : defaultState.settings.lastTab,
     };
   }
 
