@@ -120,6 +120,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       </div>
     </section>
 
+    ${renderSessionHistoryCard()}
     ${renderRecoveryCard({ missedYesterday, recoveryPlan })}
     ${renderGuidedSessionCard(guidedProgress)}
 
@@ -302,6 +303,42 @@ function renderRecoveryCard({ missedYesterday, recoveryPlan }) {
   `;
 }
 
+function renderSessionHistoryCard() {
+  const history = (state.sessionHistory || []).slice(0, 5);
+  if (!history.length) {
+    return `
+      <section class="card enter-up delay-2">
+        <header class="section-head">
+          <h2>Recent Sessions</h2>
+          <p class="muted">No sessions yet</p>
+        </header>
+        <p class="muted">Complete a guided flow to populate your recent history.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="card enter-up delay-2">
+      <header class="section-head">
+        <h2>Recent Sessions</h2>
+        <p class="muted">Last ${history.length}</p>
+      </header>
+      <ul class="history-list">
+        ${history
+          .map(
+            (entry) => `
+          <li>
+            <strong>${escapeHtml(entry.sourceLabel || 'Session')}</strong>
+            <small>${entry.completed || 0}/${entry.total || 0} · ${escapeHtml(entry.endedReason || 'ended')} · ${formatDateTime(entry.endedAt)}</small>
+          </li>
+        `
+          )
+          .join('')}
+      </ul>
+    </section>
+  `;
+}
+
 function renderSessionCueCard() {
   const cueMode = state.settings.cueMode || 'vibration';
   return `
@@ -425,11 +462,18 @@ function bindEvents() {
   if (guidedEnd) {
     guidedEnd.addEventListener('click', () => {
       if (!state.guidedSession) return;
+      const session = state.guidedSession;
       const merged = new Set([
         ...state.progressByDate[todayDateKey].completedStretchIds,
-        ...state.guidedSession.completedStretchIds,
+        ...session.completedStretchIds,
       ]);
       state.progressByDate[todayDateKey].completedStretchIds = [...merged];
+      appendSessionHistory({
+        sourceLabel: session.sourceLabel,
+        completed: session.completedStretchIds.length,
+        total: session.stretchIds.length,
+        endedReason: 'manual stop',
+      });
       state.guidedSession = null;
       persistAndRender();
     });
@@ -584,6 +628,7 @@ function syncGuidedTimer() {
 function completeGuidedStep() {
   if (!state.guidedSession) return;
 
+  const previousSession = state.guidedSession;
   const result = completeCurrentStretch(state.guidedSession, stretchById);
   const merged = new Set([
     ...state.progressByDate[todayDateKey].completedStretchIds,
@@ -591,6 +636,14 @@ function completeGuidedStep() {
   ]);
   state.progressByDate[todayDateKey].completedStretchIds = [...merged];
   playCompletionCue(state.settings.cueMode);
+  if (result.finished) {
+    appendSessionHistory({
+      sourceLabel: previousSession.sourceLabel,
+      completed: result.completedStretchIds.length,
+      total: previousSession.stretchIds.length,
+      endedReason: 'completed',
+    });
+  }
   state.guidedSession = result.nextSession ? { ...result.nextSession, isRunning: true } : null;
   persistAndRender();
 }
@@ -612,6 +665,30 @@ function formatTimer(totalSec) {
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${`${sec}`.padStart(2, '0')}`;
+}
+
+function formatDateTime(isoString) {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function appendSessionHistory({ sourceLabel, completed, total, endedReason }) {
+  const nextEntry = {
+    id: `hist-${Date.now()}`,
+    sourceLabel,
+    completed,
+    total,
+    endedReason,
+    endedAt: new Date().toISOString(),
+  };
+
+  state.sessionHistory = [nextEntry, ...(state.sessionHistory || [])].slice(0, 30);
 }
 
 function playCompletionCue(cueMode) {

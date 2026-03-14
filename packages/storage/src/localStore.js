@@ -5,6 +5,7 @@ const defaultState = {
   completedDates: [],
   customRoutines: [],
   guidedSession: null,
+  sessionHistory: [],
   settings: {
     healthSyncEnabled: false,
     cueMode: 'vibration',
