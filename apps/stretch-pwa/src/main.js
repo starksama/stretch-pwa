@@ -20,6 +20,7 @@ const todayDateKey = getDateKey();
 const plan = getDailyPlan(todayDateKey, defaultStretchLibrary);
 const stretchById = Object.fromEntries(defaultStretchLibrary.map((item) => [item.id, item]));
 let guidedTimerId = null;
+let routineEditorId = null;
 
 if (!state.progressByDate[todayDateKey]) {
   state.progressByDate[todayDateKey] = {
@@ -55,6 +56,9 @@ function persistAndRender() {
 function render({ completedCount, completionRatio, guidedProgress }) {
   const streak = getActiveStreak(state.completedDates, todayDateKey);
   const ringDash = Math.round(completionRatio * 283);
+  const editingRoutine = routineEditorId
+    ? state.customRoutines.find((routine) => routine.id === routineEditorId) || null
+    : null;
   const recentWindow = getRecentCompletionWindow({
     todayDateKey,
     completedDates: state.completedDates,
@@ -141,13 +145,13 @@ function render({ completedCount, completionRatio, guidedProgress }) {
 
     <section class="card enter-up delay-3">
       <header class="section-head">
-        <h2>Build Routine</h2>
-        <p class="muted">Save reusable stretch combos</p>
+        <h2>${editingRoutine ? 'Edit Routine' : 'Build Routine'}</h2>
+        <p class="muted">${editingRoutine ? 'Update and save changes' : 'Save reusable stretch combos'}</p>
       </header>
       <form id="routine-form" class="routine-form">
         <label>
           Name
-          <input name="name" maxlength="40" placeholder="Example: Desk Reset" required />
+          <input name="name" maxlength="40" placeholder="Example: Desk Reset" value="${escapeHtml(editingRoutine?.name || '')}" required />
         </label>
         <fieldset>
           <legend>Select stretches</legend>
@@ -156,7 +160,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .map(
                 (item) => `
               <label class="choice-chip">
-                <input type="checkbox" name="stretch" value="${item.id}" />
+                <input type="checkbox" name="stretch" value="${item.id}" ${editingRoutine?.stretchIds?.includes(item.id) ? 'checked' : ''} />
                 <span>${escapeHtml(item.name)}</span>
               </label>
             `
@@ -164,7 +168,8 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .join('')}
           </div>
         </fieldset>
-        <button type="submit" class="primary-btn">Save routine</button>
+        <button type="submit" class="primary-btn">${editingRoutine ? 'Save changes' : 'Save routine'}</button>
+        ${editingRoutine ? '<button type="button" class="ghost-btn" id="routine-cancel">Cancel edit</button>' : ''}
         <p class="form-msg" id="routine-msg" aria-live="polite"></p>
       </form>
       <ul class="routine-list">
@@ -180,6 +185,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .join(' · ')}</p>
             <div class="routine-actions">
               <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">Start</button>
+              <button class="ghost-btn" data-action="edit-routine" data-id="${routine.id}">Edit</button>
               <button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">Delete</button>
             </div>
           </li>
@@ -300,10 +306,23 @@ function bindEvents() {
     });
   });
 
+  appRoot.querySelectorAll('[data-action="edit-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const routineId = button.dataset.id;
+      const routine = state.customRoutines.find((item) => item.id === routineId);
+      if (!routine) return;
+      routineEditorId = routine.id;
+      persistAndRender();
+    });
+  });
+
   appRoot.querySelectorAll('[data-action="delete-routine"]').forEach((button) => {
     button.addEventListener('click', () => {
       const routineId = button.dataset.id;
       state.customRoutines = state.customRoutines.filter((routine) => routine.id !== routineId);
+      if (routineEditorId === routineId) {
+        routineEditorId = null;
+      }
       if (state.guidedSession?.id === routineId) {
         state.guidedSession = null;
       }
@@ -373,9 +392,33 @@ function bindEvents() {
         return;
       }
 
-      state.customRoutines = [createRoutine(name, selected), ...state.customRoutines];
-      msgEl.textContent = 'Routine saved.';
+      if (routineEditorId) {
+        state.customRoutines = state.customRoutines.map((routine) =>
+          routine.id === routineEditorId
+            ? {
+                ...routine,
+                name: name.trim(),
+                stretchIds: [...new Set(selected)],
+                updatedAt: new Date().toISOString(),
+              }
+            : routine
+        );
+        msgEl.textContent = 'Routine updated.';
+        routineEditorId = null;
+      } else {
+        state.customRoutines = [createRoutine(name, selected), ...state.customRoutines];
+        msgEl.textContent = 'Routine saved.';
+      }
+
       form.reset();
+      persistAndRender();
+    });
+  }
+
+  const cancelEditBtn = appRoot.querySelector('#routine-cancel');
+  if (cancelEditBtn) {
+    cancelEditBtn.addEventListener('click', () => {
+      routineEditorId = null;
       persistAndRender();
     });
   }
