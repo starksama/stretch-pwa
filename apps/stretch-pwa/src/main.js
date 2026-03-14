@@ -1,18 +1,18 @@
-import { getDateKey, getDailyPlan } from '../../../packages/domain/src/planner.js';
-import { defaultStretchLibrary } from '../../../packages/domain/src/models.js';
-import { buildRecoveryPlan, getYesterdayDateKey } from '../../../packages/domain/src/recovery.js';
-import { getActiveStreak, hasCompletedPlan } from '../../../packages/domain/src/streaks.js';
-import { createRoutine, validateRoutineInput } from '../../../packages/domain/src/routines.js';
-import { getCompletionRate, getRecentCompletionWindow } from '../../../packages/domain/src/analytics.js';
+import { getDateKey, getDailyPlan } from './lib/domain/planner.js';
+import { defaultStretchLibrary } from './lib/domain/models.js';
+import { buildRecoveryPlan, getYesterdayDateKey } from './lib/domain/recovery.js';
+import { getActiveStreak, hasCompletedPlan } from './lib/domain/streaks.js';
+import { createRoutine, validateRoutineInput } from './lib/domain/routines.js';
+import { getCompletionRate, getRecentCompletionWindow } from './lib/domain/analytics.js';
 import {
   clampSessionToLibrary,
   completeCurrentStretch,
   createGuidedSession,
   getGuidedSessionProgress,
   tickGuidedSession,
-} from '../../../packages/domain/src/session.js';
-import { clearState, loadState, saveState } from '../../../packages/storage/src/localStore.js';
-import { syncWorkoutSnapshot } from '../../../packages/integrations/health-sync/src/index.js';
+} from './lib/domain/session.js';
+import { clearState, loadState, saveState } from './lib/storage/localStore.js';
+import { syncWorkoutSnapshot } from './lib/integrations/index.js';
 import { featureFlags } from './config/featureFlags.js';
 
 const appRoot = document.querySelector('#app');
