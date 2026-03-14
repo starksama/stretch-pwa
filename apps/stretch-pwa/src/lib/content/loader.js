@@ -43,9 +43,27 @@ export async function loadActionLibraryFromSource(options = {}) {
       const response = await fetchImpl(packUrl, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP_${response.status}`);
       const remotePack = await response.json();
-      return loadActionLibrary({ mode: 'download-pack', externalPack: remotePack });
-    } catch {
-      return loadActionLibrary({ mode: 'seed' });
+      const loaded = loadActionLibrary({ mode: 'download-pack', externalPack: remotePack });
+      if (loaded.meta.usedFallback) {
+        return {
+          ...loaded,
+          meta: {
+            ...loaded.meta,
+            error: 'invalid_schema',
+          },
+        };
+      }
+      return loaded;
+    } catch (error) {
+      const fallback = loadActionLibrary({ mode: 'seed' });
+      return {
+        ...fallback,
+        meta: {
+          ...fallback.meta,
+          error: error instanceof Error ? error.message : 'load_failed',
+          usedFallback: true,
+        },
+      };
     }
   }
   return loadActionLibrary({ mode, externalPack });

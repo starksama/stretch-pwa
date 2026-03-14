@@ -175,6 +175,8 @@ const I18N = {
     cacheReady: 'Cached pack ready ({source}).',
     cacheCleared: 'Cached pack removed.',
     noCacheAvailable: 'No cached pack available.',
+    packLoadFailed: 'Failed to load URL pack ({reason}). Kept current pack.',
+    packInvalidFallback: 'Pack schema invalid. Kept current pack.',
     packInspectorTitle: 'Pack Inspector',
     packInspectorSubtitle: 'Preview quality coverage before starting guided sessions.',
     filterDifficulty: 'Difficulty',
@@ -317,6 +319,8 @@ const I18N = {
     cacheReady: '快取動作包可用（{source}）。',
     cacheCleared: '已移除快取動作包。',
     noCacheAvailable: '目前沒有可用快取動作包。',
+    packLoadFailed: 'URL 動作包載入失敗（{reason}），已保留目前內容。',
+    packInvalidFallback: '動作包結構不符合規範，已保留目前內容。',
     packInspectorTitle: '動作包檢視',
     packInspectorSubtitle: '開始引導前先確認內容覆蓋與品質分布。',
     filterDifficulty: '難度',
@@ -1378,6 +1382,15 @@ function bindEvents() {
       const url = packUrl?.value?.trim() || '';
       if (packMsg) packMsg.textContent = t('loadingPack');
       const loaded = await loadActionLibraryFromSource({ mode, packUrl: url });
+      if (mode === 'url' && loaded.meta?.usedFallback) {
+        if (packMsg) {
+          packMsg.textContent =
+            loaded.meta?.error === 'invalid_schema'
+              ? t('packInvalidFallback')
+              : t('packLoadFailed', { reason: loaded.meta?.error || 'load_failed' });
+        }
+        return;
+      }
       applyActionLibrary(loaded);
       state.settings.actionPackMode = mode;
       state.settings.actionPackUrl = url;
