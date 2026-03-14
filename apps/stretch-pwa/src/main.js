@@ -40,6 +40,8 @@ const APP_TABS = ['today', 'guided', 'routines', 'history', 'settings'];
 let isGuidedTicking = false;
 let renderCount = 0;
 let renderDuringGuidedTicks = 0;
+let hasViewportLayoutListeners = false;
+let pendingLayoutSyncFrame = null;
 
 const I18N = {
   en: {
@@ -387,6 +389,7 @@ function bootstrap() {
     }
 
     persistAndRender();
+    ensureViewportLayoutSync();
     registerServiceWorker();
   } catch (error) {
     renderFatalError(error);
@@ -640,6 +643,43 @@ function render({ completedCount, completionRatio, guidedProgress }) {
   `;
 
   bindEvents();
+  queueLayoutSync();
+}
+
+function ensureViewportLayoutSync() {
+  if (hasViewportLayoutListeners) return;
+  hasViewportLayoutListeners = true;
+  window.addEventListener('resize', queueLayoutSync);
+  window.addEventListener('orientationchange', queueLayoutSync);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', queueLayoutSync);
+    window.visualViewport.addEventListener('scroll', queueLayoutSync);
+  }
+}
+
+function queueLayoutSync() {
+  if (pendingLayoutSyncFrame !== null) return;
+  pendingLayoutSyncFrame = window.requestAnimationFrame(() => {
+    pendingLayoutSyncFrame = null;
+    syncLayoutInsets();
+  });
+}
+
+function syncLayoutInsets() {
+  const shell = appRoot.querySelector('.app-shell');
+  if (!shell) return;
+
+  const tabbar = shell.querySelector('.app-tabbar');
+  const view = shell.querySelector('.app-view');
+  const dock = view?.querySelector('.guided-dock');
+  const tabbarHeight = Math.ceil(tabbar?.getBoundingClientRect().height || 0);
+  const dockHeight = Math.ceil(dock?.getBoundingClientRect().height || 0);
+  const tabbarInset = Math.max(tabbarHeight, 88);
+  const viewBottomPad = tabbarInset + (dock ? dockHeight + 20 : 20);
+
+  appRoot.style.setProperty('--tabbar-height', `${tabbarInset}px`);
+  appRoot.style.setProperty('--view-bottom-pad', `${viewBottomPad}px`);
+  appRoot.style.setProperty('--dock-bottom-offset', `${tabbarInset + 12}px`);
 }
 
 function renderIntegrationCard() {
