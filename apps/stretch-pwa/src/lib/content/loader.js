@@ -1,10 +1,12 @@
 import { seedActionPackV1 } from './seedPack.v1.js';
 import { seedOfficeActionPackV1 } from './seedPack.office.v1.js';
+import { seedRecoveryActionPackV1 } from './seedPack.recovery.v1.js';
 import { isValidActionPack } from './schema.js';
 
 const BUILTIN_PACKS = {
   seed: seedActionPackV1,
   'seed-office': seedOfficeActionPackV1,
+  'seed-recovery': seedRecoveryActionPackV1,
 };
 
 export function loadActionLibrary(options = {}) {

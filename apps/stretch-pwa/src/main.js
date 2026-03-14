@@ -152,6 +152,7 @@ const I18N = {
     actionPackSource: 'Source',
     localSeedPack: 'Local Seed Pack',
     officeSeedPack: 'Office Reset Pack',
+    recoverySeedPack: 'Recovery Wind-down Pack',
     externalUrlPack: 'External URL Pack',
     packUrlLabel: 'Pack URL',
     localPackFile: 'Local pack file',
@@ -285,6 +286,7 @@ const I18N = {
     actionPackSource: '來源',
     localSeedPack: '本機基礎動作包',
     officeSeedPack: '辦公室重置動作包',
+    recoverySeedPack: '恢復放鬆動作包',
     externalUrlPack: '外部 URL 動作包',
     packUrlLabel: '動作包 URL',
     localPackFile: '本機動作包檔案',
@@ -372,7 +374,7 @@ function initializeActionLibraryFromState() {
     return;
   }
 
-  const safeMode = mode === 'seed-office' ? 'seed-office' : 'seed';
+  const safeMode = ['seed', 'seed-office', 'seed-recovery'].includes(mode) ? mode : 'seed';
   applyActionLibrary(loadActionLibrary({ mode: safeMode }));
 }
 
@@ -621,7 +623,7 @@ function renderIntegrationCard() {
 }
 
 function renderActionPackCard() {
-  const mode = ['seed', 'seed-office', 'url', 'file'].includes(state.settings.actionPackMode)
+  const mode = ['seed', 'seed-office', 'seed-recovery', 'url', 'file'].includes(state.settings.actionPackMode)
     ? state.settings.actionPackMode
     : 'seed';
   const selectMode = mode === 'file' ? 'url' : mode;
@@ -645,6 +647,7 @@ function renderActionPackCard() {
         <select id="pack-mode">
           <option value="seed" ${selectMode === 'seed' ? 'selected' : ''}>${t('localSeedPack')}</option>
           <option value="seed-office" ${selectMode === 'seed-office' ? 'selected' : ''}>${t('officeSeedPack')}</option>
+          <option value="seed-recovery" ${selectMode === 'seed-recovery' ? 'selected' : ''}>${t('recoverySeedPack')}</option>
           <option value="url" ${selectMode === 'url' ? 'selected' : ''}>${t('externalUrlPack')}</option>
         </select>
       </label>
@@ -1255,9 +1258,9 @@ function bindEvents() {
 
   if (packMode) {
     packMode.addEventListener('change', () => {
-      const nextMode = ['seed', 'seed-office', 'url'].includes(packMode.value) ? packMode.value : 'seed';
+      const nextMode = ['seed', 'seed-office', 'seed-recovery', 'url'].includes(packMode.value) ? packMode.value : 'seed';
       state.settings.actionPackMode = nextMode;
-      if (nextMode === 'seed' || nextMode === 'seed-office') {
+      if (nextMode === 'seed' || nextMode === 'seed-office' || nextMode === 'seed-recovery') {
         applyActionLibrary(loadActionLibrary({ mode: nextMode }));
         saveState(state);
         persistAndRender();
@@ -1276,7 +1279,9 @@ function bindEvents() {
 
   if (packLoad) {
     packLoad.addEventListener('click', async () => {
-      const mode = ['seed', 'seed-office', 'url'].includes(packMode?.value) ? packMode.value : 'seed';
+      const mode = ['seed', 'seed-office', 'seed-recovery', 'url'].includes(packMode?.value)
+        ? packMode.value
+        : 'seed';
       const url = packUrl?.value?.trim() || '';
       if (packMsg) packMsg.textContent = t('loadingPack');
       const loaded = await loadActionLibraryFromSource({ mode, packUrl: url });

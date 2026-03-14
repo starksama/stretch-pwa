@@ -155,7 +155,7 @@ function sanitizeState(input) {
           ? input.settings.lastTab
           : defaultState.settings.lastTab,
       actionPackMode:
-        ['seed', 'seed-office', 'url', 'file'].includes(input.settings.actionPackMode)
+        ['seed', 'seed-office', 'seed-recovery', 'url', 'file'].includes(input.settings.actionPackMode)
           ? input.settings.actionPackMode
           : defaultState.settings.actionPackMode,
       actionPackUrl:
