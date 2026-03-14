@@ -153,6 +153,7 @@ const I18N = {
     alternativeLabel: 'Alternative',
     difficultyLabel: 'Difficulty',
     bodyAreaLabel: 'Body area',
+    intensityLabel: 'Intensity',
     actionPackTitle: 'Action Pack',
     actionPackSource: 'Source',
     localSeedPack: 'Local Seed Pack',
@@ -297,6 +298,7 @@ const I18N = {
     alternativeLabel: '替代方式',
     difficultyLabel: '難度',
     bodyAreaLabel: '部位',
+    intensityLabel: '強度',
     actionPackTitle: '動作包',
     actionPackSource: '來源',
     localSeedPack: '本機基礎動作包',
@@ -752,6 +754,8 @@ function renderGuidedSessionCard(guidedProgress) {
       <div class="guided-meta-row">
         <span class="pill">${t('difficultyLabel')}: ${escapeHtml(activeStretch.quality?.difficulty || '-')}</span>
         <span class="pill">${t('bodyAreaLabel')}: ${escapeHtml(activeStretch.quality?.bodyArea || '-')}</span>
+        <span class="pill">${t('intensityLabel')}: ${escapeHtml(activeStretch.intensity ?? '-')}</span>
+        <span class="pill">${t('tagsLabel')}: ${escapeHtml((activeStretch.quality?.tags || []).join(', ') || '-')}</span>
       </div>
       `
           : ''
