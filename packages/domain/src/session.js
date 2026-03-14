@@ -1,33 +1,49 @@
-export function createGuidedSession(plan, completedStretchIds) {
-  const firstPendingIndex = plan.stretches.findIndex((stretch) => !completedStretchIds.includes(stretch.id));
-  const activeIndex = firstPendingIndex === -1 ? 0 : firstPendingIndex;
-  const activeStretch = plan.stretches[activeIndex];
+export function createGuidedSession({
+  sessionId,
+  dateKey,
+  sourceLabel,
+  stretchIds,
+  completedStretchIds,
+  stretchById,
+}) {
+  const validStretchIds = stretchIds.filter((id) => Boolean(stretchById[id]));
+  if (!validStretchIds.length) return null;
+
+  const completedSet = new Set(completedStretchIds.filter((id) => validStretchIds.includes(id)));
+  const firstPendingIndex = validStretchIds.findIndex((id) => !completedSet.has(id));
+  const currentIndex = firstPendingIndex === -1 ? 0 : firstPendingIndex;
+  const activeId = validStretchIds[currentIndex];
 
   return {
-    planId: plan.id,
-    dateKey: plan.dateKey,
-    currentIndex: activeIndex,
-    remainingSec: activeStretch.durationSec,
+    id: sessionId,
+    dateKey,
+    sourceLabel,
+    stretchIds: validStretchIds,
+    currentIndex,
+    remainingSec: stretchById[activeId].durationSec,
     isRunning: false,
     startedAt: new Date().toISOString(),
-    completedStretchIds: [...new Set(completedStretchIds)],
+    completedStretchIds: [...completedSet],
   };
 }
 
-export function clampSessionToPlan(session, plan) {
-  if (!session || session.planId !== plan.id || session.dateKey !== plan.dateKey) {
+export function clampSessionToLibrary(session, stretchById, dateKey) {
+  if (!session || session.dateKey !== dateKey || !session.stretchIds?.length) return null;
+
+  const validStretchIds = session.stretchIds.filter((id) => Boolean(stretchById[id]));
+  if (!validStretchIds.length || session.currentIndex < 0 || session.currentIndex >= validStretchIds.length) {
     return null;
   }
 
-  if (session.currentIndex < 0 || session.currentIndex >= plan.stretches.length) {
-    return null;
-  }
+  const activeId = validStretchIds[session.currentIndex];
+  const maxSec = stretchById[activeId].durationSec;
+  const completedSet = new Set(session.completedStretchIds.filter((id) => validStretchIds.includes(id)));
 
-  const stretch = plan.stretches[session.currentIndex];
   return {
     ...session,
-    remainingSec: Math.max(1, Math.min(session.remainingSec, stretch.durationSec)),
-    completedStretchIds: [...new Set(session.completedStretchIds)],
+    stretchIds: validStretchIds,
+    remainingSec: Math.max(1, Math.min(session.remainingSec, maxSec)),
+    completedStretchIds: [...completedSet],
   };
 }
 
@@ -36,12 +52,12 @@ export function tickGuidedSession(session) {
   return { ...session, remainingSec: Math.max(0, session.remainingSec - 1) };
 }
 
-export function completeCurrentStretch(session, plan) {
-  const stretch = plan.stretches[session.currentIndex];
-  const mergedCompleted = [...new Set([...session.completedStretchIds, stretch.id])];
+export function completeCurrentStretch(session, stretchById) {
+  const currentStretchId = session.stretchIds[session.currentIndex];
+  const mergedCompleted = [...new Set([...session.completedStretchIds, currentStretchId])];
   const nextIndex = session.currentIndex + 1;
 
-  if (nextIndex >= plan.stretches.length) {
+  if (nextIndex >= session.stretchIds.length) {
     return {
       nextSession: null,
       finished: true,
@@ -49,11 +65,12 @@ export function completeCurrentStretch(session, plan) {
     };
   }
 
+  const nextId = session.stretchIds[nextIndex];
   return {
     nextSession: {
       ...session,
       currentIndex: nextIndex,
-      remainingSec: plan.stretches[nextIndex].durationSec,
+      remainingSec: stretchById[nextId].durationSec,
       completedStretchIds: mergedCompleted,
     },
     finished: false,
@@ -61,7 +78,7 @@ export function completeCurrentStretch(session, plan) {
   };
 }
 
-export function getGuidedSessionProgress(session, total) {
+export function getGuidedSessionProgress(session) {
   if (!session) return 0;
-  return Math.min(session.completedStretchIds.length / total, 1);
+  return Math.min(session.completedStretchIds.length / session.stretchIds.length, 1);
 }

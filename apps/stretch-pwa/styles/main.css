@@ -339,6 +339,17 @@ h3 {
   padding-top: 10px;
 }
 
+.routine-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.danger-btn {
+  color: #8f2f2f;
+  background: rgba(185, 63, 63, 0.12);
+}
+
 .enter-up {
   animation: enter-up 420ms ease both;
 }

@@ -3,7 +3,7 @@ import { defaultStretchLibrary } from '../../../packages/domain/src/models.js';
 import { getActiveStreak, hasCompletedPlan } from '../../../packages/domain/src/streaks.js';
 import { createRoutine, validateRoutineInput } from '../../../packages/domain/src/routines.js';
 import {
-  clampSessionToPlan,
+  clampSessionToLibrary,
   completeCurrentStretch,
   createGuidedSession,
   getGuidedSessionProgress,
@@ -17,6 +17,7 @@ const appRoot = document.querySelector('#app');
 const state = loadState();
 const todayDateKey = getDateKey();
 const plan = getDailyPlan(todayDateKey, defaultStretchLibrary);
+const stretchById = Object.fromEntries(defaultStretchLibrary.map((item) => [item.id, item]));
 let guidedTimerId = null;
 
 if (!state.progressByDate[todayDateKey]) {
@@ -25,7 +26,7 @@ if (!state.progressByDate[todayDateKey]) {
     lastUpdatedAt: new Date().toISOString(),
   };
 }
-state.guidedSession = clampSessionToPlan(state.guidedSession, plan);
+state.guidedSession = clampSessionToLibrary(state.guidedSession, stretchById, todayDateKey);
 
 persistAndRender();
 registerServiceWorker();
@@ -47,7 +48,7 @@ function persistAndRender() {
   state.completedDates = Array.from(new Set(state.completedDates)).sort();
   saveState(state);
   syncGuidedTimer();
-  render({ completedCount, completionRatio, guidedProgress: getGuidedSessionProgress(state.guidedSession, plan.stretches.length) });
+  render({ completedCount, completionRatio, guidedProgress: getGuidedSessionProgress(state.guidedSession) });
 }
 
 function render({ completedCount, completionRatio, guidedProgress }) {
@@ -152,6 +153,10 @@ function render({ completedCount, completionRatio, guidedProgress }) {
               .filter(Boolean)
               .map((name) => escapeHtml(name))
               .join(' · ')}</p>
+            <div class="routine-actions">
+              <button class="ghost-btn" data-action="start-routine" data-id="${routine.id}">Start</button>
+              <button class="ghost-btn danger-btn" data-action="delete-routine" data-id="${routine.id}">Delete</button>
+            </div>
           </li>
         `
           )
@@ -186,8 +191,9 @@ function renderIntegrationCard() {
 
 function renderGuidedSessionCard(guidedProgress) {
   const session = state.guidedSession;
-  const activeStretch = session ? plan.stretches[session.currentIndex] : null;
+  const activeStretch = session ? stretchById[session.stretchIds[session.currentIndex]] : null;
   const totalMinutes = Math.ceil(plan.totalSeconds / 60);
+  const totalStretches = session?.stretchIds.length || plan.stretches.length;
   const completed = session?.completedStretchIds.length || 0;
 
   if (!session || !activeStretch) {
@@ -211,11 +217,11 @@ function renderGuidedSessionCard(guidedProgress) {
     <section class="card guided-card enter-up delay-2">
       <header class="section-head">
         <h2>Guided Session</h2>
-        <p class="muted">${statusLabel}</p>
+        <p class="muted">${escapeHtml(session.sourceLabel)} · ${statusLabel}</p>
       </header>
       <p class="guided-title">${escapeHtml(activeStretch.name)}</p>
       <p class="guided-time">${formatTimer(session.remainingSec)}</p>
-      <p class="muted">Stretch ${session.currentIndex + 1}/${plan.stretches.length} · ${completed}/${plan.stretches.length} complete</p>
+      <p class="muted">Stretch ${session.currentIndex + 1}/${totalStretches} · ${completed}/${totalStretches} complete</p>
       <div class="progress-track" aria-hidden="true">
         <span style="width:${Math.max(0, Math.min(stretchPercent, 100))}%"></span>
       </div>
@@ -235,11 +241,50 @@ function bindEvents() {
   const guidedStart = appRoot.querySelector('#guided-start');
   if (guidedStart) {
     guidedStart.addEventListener('click', () => {
-      state.guidedSession = createGuidedSession(plan, state.progressByDate[todayDateKey].completedStretchIds);
-      state.guidedSession.isRunning = true;
+      const nextSession = createGuidedSession({
+        sessionId: plan.id,
+        dateKey: todayDateKey,
+        sourceLabel: 'Daily Plan',
+        stretchIds: plan.stretches.map((stretch) => stretch.id),
+        completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
+        stretchById,
+      });
+      if (!nextSession) return;
+      state.guidedSession = { ...nextSession, isRunning: true };
       persistAndRender();
     });
   }
+
+  appRoot.querySelectorAll('[data-action="start-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const routineId = button.dataset.id;
+      const routine = state.customRoutines.find((item) => item.id === routineId);
+      if (!routine) return;
+
+      const nextSession = createGuidedSession({
+        sessionId: routine.id,
+        dateKey: todayDateKey,
+        sourceLabel: `Routine: ${routine.name}`,
+        stretchIds: routine.stretchIds,
+        completedStretchIds: state.progressByDate[todayDateKey].completedStretchIds,
+        stretchById,
+      });
+      if (!nextSession) return;
+      state.guidedSession = { ...nextSession, isRunning: true };
+      persistAndRender();
+    });
+  });
+
+  appRoot.querySelectorAll('[data-action="delete-routine"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const routineId = button.dataset.id;
+      state.customRoutines = state.customRoutines.filter((routine) => routine.id !== routineId);
+      if (state.guidedSession?.id === routineId) {
+        state.guidedSession = null;
+      }
+      persistAndRender();
+    });
+  });
 
   const guidedToggle = appRoot.querySelector('#guided-toggle');
   if (guidedToggle) {
@@ -370,7 +415,7 @@ function syncGuidedTimer() {
     render({
       completedCount: tickCompletedCount,
       completionRatio: Math.min(tickCompletedCount / plan.stretches.length, 1),
-      guidedProgress: getGuidedSessionProgress(state.guidedSession, plan.stretches.length),
+      guidedProgress: getGuidedSessionProgress(state.guidedSession),
     });
   }, 1000);
 }
@@ -378,7 +423,7 @@ function syncGuidedTimer() {
 function completeGuidedStep() {
   if (!state.guidedSession) return;
 
-  const result = completeCurrentStretch(state.guidedSession, plan);
+  const result = completeCurrentStretch(state.guidedSession, stretchById);
   const merged = new Set([
     ...state.progressByDate[todayDateKey].completedStretchIds,
     ...result.completedStretchIds,
