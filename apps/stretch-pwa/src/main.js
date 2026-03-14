@@ -393,21 +393,9 @@ function render({ completedCount, completionRatio, guidedProgress }) {
         <h2>${t('dailyPlan')}</h2>
         <p class="muted">${t('doneCount', { done: completedCount, total: plan.stretches.length })}</p>
       </header>
-      <div class="today-focus-grid">
-        <article class="stat-card compact">
-          <div class="ring" role="img" aria-label="${Math.round(completionRatio * 100)} percent complete">
-            <svg viewBox="0 0 100 100">
-              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
-              <circle class="ring-fg" cx="50" cy="50" r="45" style="stroke-dasharray: ${ringDash} 283"></circle>
-            </svg>
-            <span>${Math.round(completionRatio * 100)}%</span>
-          </div>
-          <p class="muted">${t('dailyPlan')}</p>
-        </article>
-        <article class="stat-card compact">
-          <p class="stat-value">${streak}</p>
-          <p class="muted">${t('streakLabel')}</p>
-        </article>
+      <div class="today-inline-stats">
+        <p><strong>${Math.round(completionRatio * 100)}%</strong> ${t('dailyPlan')}</p>
+        <p><strong>${streak}</strong> ${t('streakLabel')}</p>
       </div>
       <div class="guided-actions top-gap">
         <button class="primary-btn" id="today-start-guided">${t('startGuided')}</button>

@@ -496,6 +496,18 @@ h3 {
   gap: 10px;
 }
 
+.today-inline-stats {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(16, 35, 32, 0.05);
+}
+
+.today-inline-stats p {
+  font-size: 0.92rem;
+}
+
 .stat-card.compact {
   border: 1px solid rgba(16, 35, 32, 0.12);
   border-radius: 14px;
