@@ -12,6 +12,7 @@ const SHELL_ASSETS = [
   '../../packages/domain/src/models.js',
   '../../packages/domain/src/planner.js',
   '../../packages/domain/src/routines.js',
+  '../../packages/domain/src/session.js',
   '../../packages/domain/src/streaks.js',
   '../../packages/storage/src/localStore.js',
   '../../packages/integrations/health-sync/src/index.js',

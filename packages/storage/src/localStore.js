@@ -4,6 +4,7 @@ const defaultState = {
   progressByDate: {},
   completedDates: [],
   customRoutines: [],
+  guidedSession: null,
   settings: {
     healthSyncEnabled: false,
   },

@@ -287,6 +287,46 @@ h3 {
   gap: 10px;
 }
 
+.guided-card {
+  display: grid;
+  gap: 10px;
+}
+
+.guided-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.guided-time {
+  font-size: clamp(2rem, 10vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.progress-track {
+  height: 9px;
+  background: rgba(16, 35, 32, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--ok));
+  transition: width 240ms ease;
+}
+
+.progress-track.whole span {
+  background: linear-gradient(90deg, var(--accent), #f6ca63);
+}
+
+.guided-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .switch-row {
   display: flex;
   justify-content: space-between;
@@ -339,6 +379,10 @@ h3 {
   .hero-art {
     width: 88px;
     height: 88px;
+  }
+
+  .guided-actions {
+    grid-template-columns: 1fr;
   }
 }
 
