@@ -474,6 +474,24 @@ h3 {
   font-weight: 700;
 }
 
+.guided-detail-grid {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(16, 35, 32, 0.05);
+}
+
+.guided-detail-grid p {
+  font-size: 0.88rem;
+}
+
+.guided-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .guided-time {
   font-size: clamp(2rem, 10vw, 2.5rem);
   font-weight: 700;

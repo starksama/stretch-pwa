@@ -1,9 +1,9 @@
 import { getDateKey, getDailyPlan } from './lib/domain/planner.js';
-import { defaultStretchLibrary } from './lib/domain/models.js';
 import { buildRecoveryPlan, getYesterdayDateKey } from './lib/domain/recovery.js';
 import { getActiveStreak, hasCompletedPlan } from './lib/domain/streaks.js';
 import { createRoutine, validateRoutineInput } from './lib/domain/routines.js';
 import { getCompletionRate, getRecentCompletionWindow } from './lib/domain/analytics.js';
+import { loadActionLibrary } from './lib/content/loader.js';
 import {
   clampSessionToLibrary,
   completeCurrentStretch,
@@ -19,8 +19,10 @@ import { featureFlags } from './config/featureFlags.js';
 const appRoot = document.querySelector('#app');
 const state = loadState();
 const todayDateKey = getDateKey();
-const plan = getDailyPlan(todayDateKey, defaultStretchLibrary);
-const stretchById = Object.fromEntries(defaultStretchLibrary.map((item) => [item.id, item]));
+const actionLibrary = loadActionLibrary({ mode: 'seed' });
+const stretchLibrary = actionLibrary.actions;
+const plan = getDailyPlan(todayDateKey, stretchLibrary);
+const stretchById = Object.fromEntries(stretchLibrary.map((item) => [item.id, item]));
 let guidedTimerId = null;
 let routineEditorId = null;
 let hasFatalError = false;
@@ -139,6 +141,13 @@ const I18N = {
     returnGuided: 'Open Guided',
     currentStep: 'Current: {name}',
     undoStep: 'Undo Last',
+    whatToDo: 'What to do',
+    formCueLabel: 'Form cue',
+    breathingCueLabel: 'Breathing',
+    warningLabel: 'Common mistake',
+    alternativeLabel: 'Alternative',
+    difficultyLabel: 'Difficulty',
+    bodyAreaLabel: 'Body area',
   },
   'zh-TW': {
     today: '今日',
@@ -244,6 +253,13 @@ const I18N = {
     returnGuided: '開啟引導',
     currentStep: '目前：{name}',
     undoStep: '上一步',
+    whatToDo: '怎麼做',
+    formCueLabel: '姿勢重點',
+    breathingCueLabel: '呼吸節奏',
+    warningLabel: '常見錯誤',
+    alternativeLabel: '替代方式',
+    difficultyLabel: '難度',
+    bodyAreaLabel: '部位',
   },
 };
 
@@ -260,6 +276,16 @@ function t(key, vars = {}) {
     value = value.split(`{${k}}`).join(String(v));
   });
   return value;
+}
+
+function getActionInstruction(action) {
+  if (!action?.instructions) return null;
+  return action.instructions[currentLanguage()] || action.instructions.en || null;
+}
+
+function actionLabel(action) {
+  const localized = getActionInstruction(action)?.title;
+  return localized || action?.name || '';
 }
 
 setupGlobalErrorHandling();
@@ -357,7 +383,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
   const yesterdayDateKey = getYesterdayDateKey(todayDateKey);
   const hasHistory = state.completedDates.length > 0;
   const missedYesterday = hasHistory && !state.completedDates.includes(yesterdayDateKey);
-  const recoveryPlan = buildRecoveryPlan(defaultStretchLibrary, 3);
+  const recoveryPlan = buildRecoveryPlan(stretchLibrary, 3);
   const editingRoutine = routineEditorId
     ? state.customRoutines.find((routine) => routine.id === routineEditorId) || null
     : null;
@@ -419,7 +445,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
         <fieldset>
           <legend>${t('selectStretches')}</legend>
           <div class="choice-grid">
-            ${defaultStretchLibrary
+            ${stretchLibrary
               .map(
                 (item) => `
               <label class="choice-chip">
@@ -442,7 +468,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
           <li>
             <h3>${escapeHtml(routine.name)}</h3>
             <p class="muted">${routine.stretchIds
-              .map((id) => defaultStretchLibrary.find((stretch) => stretch.id === id)?.name)
+              .map((id) => stretchLibrary.find((stretch) => stretch.id === id)?.name)
               .filter(Boolean)
               .map((name) => escapeHtml(name))
               .join(' · ')}</p>
@@ -553,7 +579,8 @@ function renderGuidedSessionCard(guidedProgress) {
   const stretchPercent = Math.round(((activeStretch.durationSec - session.remainingSec) / activeStretch.durationSec) * 100);
   const statusLabel = session.isRunning ? t('running') : t('paused');
   const nextStretch = stretchById[session.stretchIds[session.currentIndex + 1]];
-  const nextLabel = nextStretch ? t('nextPreview', { name: nextStretch.name }) : t('noNext');
+  const nextLabel = nextStretch ? t('nextPreview', { name: actionLabel(nextStretch) }) : t('noNext');
+  const details = getActionInstruction(activeStretch);
 
   return `
     <section class="card guided-card enter-up delay-2">
@@ -561,10 +588,27 @@ function renderGuidedSessionCard(guidedProgress) {
         <h2>${t('guidedSession')}</h2>
         <p class="muted" data-guided-status>${escapeHtml(session.sourceLabel)} · ${statusLabel}</p>
       </header>
-      <p class="guided-title" data-guided-title>${escapeHtml(activeStretch.name)}</p>
+      <p class="guided-title" data-guided-title>${escapeHtml(actionLabel(activeStretch))}</p>
       <p class="guided-time" data-guided-time>${formatTimer(session.remainingSec)}</p>
       <p class="muted" data-guided-step>${t('stretchProgress', { index: session.currentIndex + 1, total: totalStretches, completed })}</p>
       <p class="muted" data-guided-next>${escapeHtml(nextLabel)}</p>
+      ${
+        details
+          ? `
+      <div class="guided-detail-grid">
+        <p><strong>${t('whatToDo')}:</strong> ${escapeHtml(details.description)}</p>
+        <p><strong>${t('formCueLabel')}:</strong> ${escapeHtml(details.formCue)}</p>
+        <p><strong>${t('breathingCueLabel')}:</strong> ${escapeHtml(details.breathingCue)}</p>
+        <p><strong>${t('warningLabel')}:</strong> ${escapeHtml(details.warning)}</p>
+        <p><strong>${t('alternativeLabel')}:</strong> ${escapeHtml(details.alternative)}</p>
+      </div>
+      <div class="guided-meta-row">
+        <span class="pill">${t('difficultyLabel')}: ${escapeHtml(activeStretch.quality?.difficulty || '-')}</span>
+        <span class="pill">${t('bodyAreaLabel')}: ${escapeHtml(activeStretch.quality?.bodyArea || '-')}</span>
+      </div>
+      `
+          : ''
+      }
       <div class="progress-track" aria-hidden="true">
         <span data-guided-stretch-track style="width:${Math.max(0, Math.min(stretchPercent, 100))}%"></span>
       </div>
@@ -603,7 +647,7 @@ function renderGuidedDock(guidedProgress) {
         <h2>${t('activeSession')}</h2>
         <p class="muted" data-dock-status>${statusLabel}</p>
       </header>
-      <p class="muted" data-dock-step>${t('currentStep', { name: activeStretch.name })}</p>
+      <p class="muted" data-dock-step>${t('currentStep', { name: actionLabel(activeStretch) })}</p>
       <p class="guided-time mini" data-dock-time>${formatTimer(session.remainingSec)}</p>
       <div class="progress-track" aria-hidden="true">
         <span data-dock-track style="width:${Math.round(guidedProgress * 100)}%"></span>
@@ -760,7 +804,7 @@ function bindEvents() {
   const recoveryStart = appRoot.querySelector('#recovery-start');
   if (recoveryStart) {
     recoveryStart.addEventListener('click', () => {
-      const recoveryPlan = buildRecoveryPlan(defaultStretchLibrary, 3);
+      const recoveryPlan = buildRecoveryPlan(stretchLibrary, 3);
       const nextSession = createGuidedSession({
         sessionId: `recovery-${todayDateKey}`,
         dateKey: todayDateKey,
@@ -1210,13 +1254,13 @@ function refreshGuidedLiveElements({ tickOnly = false } = {}) {
   const totalStretches = session.stretchIds.length || plan.stretches.length;
   const completed = session.completedStretchIds.length;
   const statusLabel = session.isRunning ? t('running') : t('paused');
-  const nextLabel = nextStretch ? t('nextPreview', { name: nextStretch.name }) : t('noNext');
+  const nextLabel = nextStretch ? t('nextPreview', { name: actionLabel(nextStretch) }) : t('noNext');
   const stretchPercent = Math.round(((activeStretch.durationSec - session.remainingSec) / activeStretch.durationSec) * 100);
   const sessionPercent = Math.round(getGuidedSessionProgress(session) * 100);
 
   if (!tickOnly) {
     setNodeText(statusEl, `${session.sourceLabel} · ${statusLabel}`);
-    setNodeText(titleEl, activeStretch.name);
+    setNodeText(titleEl, actionLabel(activeStretch));
     setNodeText(stepEl, t('stretchProgress', {
       index: session.currentIndex + 1,
       total: totalStretches,
@@ -1226,7 +1270,7 @@ function refreshGuidedLiveElements({ tickOnly = false } = {}) {
     if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
     if (toggleBtn) setNodeText(toggleBtn, session.isRunning ? t('pause') : t('resume'));
     if (dockStatus) setNodeText(dockStatus, statusLabel);
-    if (dockStep) setNodeText(dockStep, t('currentStep', { name: activeStretch.name }));
+    if (dockStep) setNodeText(dockStep, t('currentStep', { name: actionLabel(activeStretch) }));
     if (dockTrack) dockTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
     if (dockToggleBtn) setNodeText(dockToggleBtn, session.isRunning ? t('pause') : t('resume'));
   }
