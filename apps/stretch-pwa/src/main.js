@@ -583,8 +583,13 @@ function renderActionPackCard() {
         Pack URL
         <input id="pack-url" type="url" placeholder="https://example.com/stretch-pack.json" value="${escapeHtml(state.settings.actionPackUrl || '')}" />
       </label>
+      <label class="stack-field">
+        Local pack file
+        <input id="pack-file" type="file" accept="application/json" />
+      </label>
       <div class="guided-actions">
         <button class="ghost-btn" id="pack-load">Load pack</button>
+        <button class="ghost-btn" id="pack-load-file">Load file pack</button>
         <button class="ghost-btn" id="pack-seed">Reset seed pack</button>
       </div>
       <p class="muted" id="pack-msg">Current actions: ${stretchLibrary.length}</p>
@@ -1151,7 +1156,9 @@ function bindEvents() {
   const packMode = appRoot.querySelector('#pack-mode');
   const packUrl = appRoot.querySelector('#pack-url');
   const packLoad = appRoot.querySelector('#pack-load');
+  const packLoadFile = appRoot.querySelector('#pack-load-file');
   const packSeed = appRoot.querySelector('#pack-seed');
+  const packFile = appRoot.querySelector('#pack-file');
   const packMsg = appRoot.querySelector('#pack-msg');
   const cueMode = appRoot.querySelector('#cue-mode');
   const cueTest = appRoot.querySelector('#cue-test');
@@ -1205,6 +1212,27 @@ function bindEvents() {
       state.settings.actionPackUrl = '';
       saveState(state);
       persistAndRender();
+    });
+  }
+
+  if (packLoadFile) {
+    packLoadFile.addEventListener('click', async () => {
+      const file = packFile?.files?.[0];
+      if (!file) {
+        if (packMsg) packMsg.textContent = 'Select a JSON file first.';
+        return;
+      }
+      try {
+        const raw = await file.text();
+        const parsed = JSON.parse(raw);
+        const loaded = loadActionLibrary({ mode: 'download-pack', externalPack: parsed });
+        applyActionLibrary(loaded);
+        state.settings.actionPackMode = 'file';
+        saveState(state);
+        persistAndRender();
+      } catch {
+        if (packMsg) packMsg.textContent = 'Invalid pack file. Kept current pack.';
+      }
     });
   }
 
