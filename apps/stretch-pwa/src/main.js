@@ -30,6 +30,11 @@ let hasSwReloaded = false;
 let pendingRoutineDeleteId = null;
 let pendingHistoryClear = false;
 let pendingGuidedEndConfirm = false;
+let packInspectorFilters = {
+  difficulty: 'all',
+  bodyArea: 'all',
+  tag: 'all',
+};
 let activeTab = 'today';
 const APP_TABS = ['today', 'guided', 'routines', 'history', 'settings'];
 let isGuidedTicking = false;
@@ -170,6 +175,14 @@ const I18N = {
     cacheReady: 'Cached pack ready ({source}).',
     cacheCleared: 'Cached pack removed.',
     noCacheAvailable: 'No cached pack available.',
+    packInspectorTitle: 'Pack Inspector',
+    packInspectorSubtitle: 'Preview quality coverage before starting guided sessions.',
+    filterDifficulty: 'Difficulty',
+    filterBodyArea: 'Body area',
+    filterTag: 'Tag',
+    allLabel: 'All',
+    matchingActions: 'Matching actions: {count}',
+    tagsLabel: 'Tags',
   },
   'zh-TW': {
     today: '今日',
@@ -304,6 +317,14 @@ const I18N = {
     cacheReady: '快取動作包可用（{source}）。',
     cacheCleared: '已移除快取動作包。',
     noCacheAvailable: '目前沒有可用快取動作包。',
+    packInspectorTitle: '動作包檢視',
+    packInspectorSubtitle: '開始引導前先確認內容覆蓋與品質分布。',
+    filterDifficulty: '難度',
+    filterBodyArea: '部位',
+    filterTag: '標籤',
+    allLabel: '全部',
+    matchingActions: '符合動作數：{count}',
+    tagsLabel: '標籤',
   },
 };
 
@@ -566,7 +587,9 @@ function render({ completedCount, completionRatio, guidedProgress }) {
   if (activeTab === 'routines') activeView = routinesSection;
   if (activeTab === 'history') activeView = renderSessionHistoryCard();
   if (activeTab === 'settings') {
-    activeView = `${renderActionPackCard()} ${renderSessionCueCard()} ${featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''}`;
+    activeView = `${renderActionPackCard()} ${renderActionPackInspectorCard()} ${renderSessionCueCard()} ${
+      featureFlags.healthSyncScaffold ? renderIntegrationCard() : ''
+    }`;
   }
 
   appRoot.innerHTML = `
@@ -750,6 +773,73 @@ function renderGuidedSessionCard(guidedProgress) {
             : `<button class="ghost-btn" id="guided-end">${t('finishNow')}</button>`
         }
       </div>
+    </section>
+  `;
+}
+
+function renderActionPackInspectorCard() {
+  const difficulties = Array.from(new Set(stretchLibrary.map((action) => action.quality?.difficulty).filter(Boolean))).sort();
+  const bodyAreas = Array.from(new Set(stretchLibrary.map((action) => action.quality?.bodyArea).filter(Boolean))).sort();
+  const tags = Array.from(
+    new Set(stretchLibrary.flatMap((action) => (Array.isArray(action.quality?.tags) ? action.quality.tags : [])))
+  ).sort();
+
+  const filtered = stretchLibrary.filter((action) => {
+    const matchDifficulty =
+      packInspectorFilters.difficulty === 'all' || action.quality?.difficulty === packInspectorFilters.difficulty;
+    const matchBodyArea =
+      packInspectorFilters.bodyArea === 'all' || action.quality?.bodyArea === packInspectorFilters.bodyArea;
+    const matchTag =
+      packInspectorFilters.tag === 'all' || (Array.isArray(action.quality?.tags) && action.quality.tags.includes(packInspectorFilters.tag));
+    return matchDifficulty && matchBodyArea && matchTag;
+  });
+
+  const option = (value, selectedValue) =>
+    `<option value="${escapeHtml(value)}" ${selectedValue === value ? 'selected' : ''}>${escapeHtml(value)}</option>`;
+
+  return `
+    <section class="card enter-up delay-3">
+      <header class="section-head">
+        <h2>${t('packInspectorTitle')}</h2>
+        <p class="muted">${t('packInspectorSubtitle')}</p>
+      </header>
+      <div class="choice-grid">
+        <label class="stack-field">
+          ${t('filterDifficulty')}
+          <select id="pack-filter-difficulty">
+            <option value="all">${t('allLabel')}</option>
+            ${difficulties.map((value) => option(value, packInspectorFilters.difficulty)).join('')}
+          </select>
+        </label>
+        <label class="stack-field">
+          ${t('filterBodyArea')}
+          <select id="pack-filter-body">
+            <option value="all">${t('allLabel')}</option>
+            ${bodyAreas.map((value) => option(value, packInspectorFilters.bodyArea)).join('')}
+          </select>
+        </label>
+        <label class="stack-field">
+          ${t('filterTag')}
+          <select id="pack-filter-tag">
+            <option value="all">${t('allLabel')}</option>
+            ${tags.map((value) => option(value, packInspectorFilters.tag)).join('')}
+          </select>
+        </label>
+      </div>
+      <p class="muted">${t('matchingActions', { count: filtered.length })}</p>
+      <ul class="history-list">
+        ${filtered
+          .slice(0, 8)
+          .map(
+            (action) => `
+          <li>
+            <strong>${escapeHtml(actionLabel(action))}</strong>
+            <small>${escapeHtml(action.quality?.difficulty || '-')} · ${escapeHtml(action.quality?.bodyArea || '-')} · ${t('tagsLabel')}: ${escapeHtml((action.quality?.tags || []).join(', '))}</small>
+          </li>
+        `
+          )
+          .join('')}
+      </ul>
     </section>
   `;
 }
@@ -1240,6 +1330,9 @@ function bindEvents() {
   const packUseCache = appRoot.querySelector('#pack-use-cache');
   const packClearCache = appRoot.querySelector('#pack-clear-cache');
   const packMsg = appRoot.querySelector('#pack-msg');
+  const packFilterDifficulty = appRoot.querySelector('#pack-filter-difficulty');
+  const packFilterBody = appRoot.querySelector('#pack-filter-body');
+  const packFilterTag = appRoot.querySelector('#pack-filter-tag');
   const cueMode = appRoot.querySelector('#cue-mode');
   const cueTest = appRoot.querySelector('#cue-test');
   const cueMsg = appRoot.querySelector('#cue-msg');
@@ -1364,6 +1457,27 @@ function bindEvents() {
       state.actionPackCache = null;
       saveState(state);
       if (packMsg) packMsg.textContent = t('cacheCleared');
+      persistAndRender();
+    });
+  }
+
+  if (packFilterDifficulty) {
+    packFilterDifficulty.addEventListener('change', () => {
+      packInspectorFilters.difficulty = packFilterDifficulty.value || 'all';
+      persistAndRender();
+    });
+  }
+
+  if (packFilterBody) {
+    packFilterBody.addEventListener('change', () => {
+      packInspectorFilters.bodyArea = packFilterBody.value || 'all';
+      persistAndRender();
+    });
+  }
+
+  if (packFilterTag) {
+    packFilterTag.addEventListener('change', () => {
+      packInspectorFilters.tag = packFilterTag.value || 'all';
       persistAndRender();
     });
   }
