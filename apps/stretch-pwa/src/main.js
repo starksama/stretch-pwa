@@ -125,6 +125,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
     ? Math.max(3, Math.min(7, parsedWeeklyGoal))
     : 5;
   const weeklyGoalProgress = Math.min(weeklyCompleteDays / weeklyGoalDays, 1);
+  const weeklyGoalAchieved = weeklyCompleteDays >= weeklyGoalDays;
   const weeklyRate = getCompletionRate(recentWindow);
 
   appRoot.innerHTML = `
@@ -161,7 +162,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
     <section class="card enter-up delay-1">
       <header class="section-head">
         <h2>Weekly Consistency</h2>
-        <p class="muted">${weeklyRate}% complete</p>
+        <p class="muted">${weeklyGoalAchieved ? 'Goal reached' : `${weeklyRate}% complete`}</p>
       </header>
       <div class="weekly-grid" role="img" aria-label="Last 7 days completion">
         ${recentWindow
@@ -188,6 +189,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
       <div class="weekly-goal-track" aria-hidden="true">
         <span style="width:${Math.round(weeklyGoalProgress * 100)}%"></span>
       </div>
+      ${weeklyGoalAchieved ? '<p class=\"goal-achieved\">Weekly target achieved. Keep the streak alive.</p>' : ''}
     </section>
 
     ${renderSessionHistoryCard()}

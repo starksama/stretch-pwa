@@ -138,6 +138,16 @@ h3 {
   transition: width 260ms ease;
 }
 
+.goal-achieved {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(61, 155, 114, 0.16);
+  color: var(--primary-strong);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .day-chip {
   min-height: 42px;
   border-radius: 12px;
