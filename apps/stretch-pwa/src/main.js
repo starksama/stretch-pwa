@@ -2,6 +2,7 @@ import { getDateKey, getDailyPlan } from '../../../packages/domain/src/planner.j
 import { defaultStretchLibrary } from '../../../packages/domain/src/models.js';
 import { getActiveStreak, hasCompletedPlan } from '../../../packages/domain/src/streaks.js';
 import { createRoutine, validateRoutineInput } from '../../../packages/domain/src/routines.js';
+import { getCompletionRate, getRecentCompletionWindow } from '../../../packages/domain/src/analytics.js';
 import {
   clampSessionToLibrary,
   completeCurrentStretch,
@@ -54,6 +55,12 @@ function persistAndRender() {
 function render({ completedCount, completionRatio, guidedProgress }) {
   const streak = getActiveStreak(state.completedDates, todayDateKey);
   const ringDash = Math.round(completionRatio * 283);
+  const recentWindow = getRecentCompletionWindow({
+    todayDateKey,
+    completedDates: state.completedDates,
+    days: 7,
+  });
+  const weeklyRate = getCompletionRate(recentWindow);
 
   appRoot.innerHTML = `
     <section class="hero card enter-up">
@@ -84,6 +91,24 @@ function render({ completedCount, completionRatio, guidedProgress }) {
         <p class="stat-value">${state.customRoutines.length}</p>
         <p class="muted">Custom routines</p>
       </article>
+    </section>
+
+    <section class="card enter-up delay-1">
+      <header class="section-head">
+        <h2>Weekly Consistency</h2>
+        <p class="muted">${weeklyRate}% complete</p>
+      </header>
+      <div class="weekly-grid" role="img" aria-label="Last 7 days completion">
+        ${recentWindow
+          .map(
+            (day) => `
+          <div class="day-chip ${day.isComplete ? 'done' : ''}">
+            <span>${escapeHtml(day.dayLabel)}</span>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
     </section>
 
     ${renderGuidedSessionCard(guidedProgress)}

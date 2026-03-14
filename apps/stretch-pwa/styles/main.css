@@ -105,6 +105,30 @@ h3 {
   gap: 10px;
 }
 
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day-chip {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 35, 32, 0.18);
+  display: grid;
+  place-items: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.day-chip.done {
+  background: rgba(61, 155, 114, 0.22);
+  border-color: rgba(61, 155, 114, 0.45);
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
 .stat-card {
   text-align: center;
   padding-block: 16px;
@@ -381,6 +405,10 @@ h3 {
 @media (max-width: 680px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .weekly-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .hero {

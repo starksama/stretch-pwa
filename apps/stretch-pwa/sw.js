@@ -10,6 +10,7 @@ const SHELL_ASSETS = [
   './assets/icons/icon-maskable.svg',
   './assets/illustration-stretch.svg',
   '../../packages/domain/src/models.js',
+  '../../packages/domain/src/analytics.js',
   '../../packages/domain/src/planner.js',
   '../../packages/domain/src/routines.js',
   '../../packages/domain/src/session.js',
