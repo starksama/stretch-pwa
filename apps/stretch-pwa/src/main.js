@@ -413,25 +413,7 @@ function render({ completedCount, completionRatio, guidedProgress }) {
         <button class="primary-btn" id="today-start-guided">${t('startGuided')}</button>
         <button class="ghost-btn" data-action="switch-tab" data-tab="routines">${t('routines')}</button>
       </div>
-      <ul class="stretch-list compact">
-        ${plan.stretches
-          .slice(0, 3)
-          .map((item) => {
-            const checked = state.progressByDate[todayDateKey].completedStretchIds.includes(item.id);
-            return `
-              <li class="stretch-item ${checked ? 'checked' : ''}">
-                <button class="touch-btn" data-action="toggle-stretch" data-id="${item.id}">
-                  <span>
-                    <strong>${escapeHtml(item.name)}</strong>
-                    <small>${item.durationSec}s${item.sideAware ? ` · ${t('eachSide')}` : ''}</small>
-                  </span>
-                  <span class="pill">${checked ? t('done') : t('mark')}</span>
-                </button>
-              </li>
-            `;
-          })
-          .join('')}
-      </ul>
+      <p class="muted top-gap">${plan.stretches.length} stretches are ready in Guided mode.</p>
     </section>
   `;
 
