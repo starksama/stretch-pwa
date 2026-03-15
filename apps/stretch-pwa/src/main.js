@@ -921,16 +921,20 @@ function renderGuidedDock(guidedProgress) {
 
   return `
     <section class="card guided-dock enter-up delay-2">
-      <header class="section-head">
-        <h2>${t('activeSession')}</h2>
-        <p class="muted" data-dock-status>${statusLabel}</p>
-      </header>
-      <p class="muted" data-dock-step>${t('currentStep', { name: actionLabel(activeStretch) })}</p>
-      <p class="guided-time mini" data-dock-time>${formatTimer(session.remainingSec)}</p>
-      <div class="progress-track" aria-hidden="true">
-        <span data-dock-track style="width:${Math.round(guidedProgress * 100)}%"></span>
+      <div class="guided-dock-main">
+        <div class="guided-dock-copy">
+          <p class="eyebrow">${t('activeSession')}</p>
+          <p class="muted guided-dock-step" data-dock-step>${escapeHtml(actionLabel(activeStretch))}</p>
+        </div>
+        <p class="guided-time mini guided-dock-time" data-dock-time>${formatTimer(session.remainingSec)}</p>
       </div>
-      <div class="guided-actions">
+      <div class="guided-dock-meta">
+        <p class="muted guided-dock-status" data-dock-status>${statusLabel}</p>
+        <div class="progress-track" aria-hidden="true">
+          <span data-dock-track style="width:${Math.round(guidedProgress * 100)}%"></span>
+        </div>
+      </div>
+      <div class="guided-actions guided-dock-actions">
         <button class="ghost-btn" id="dock-open-guided">${t('returnGuided')}</button>
         <button class="ghost-btn" id="dock-toggle-guided">${session.isRunning ? t('pause') : t('resume')}</button>
       </div>
@@ -1723,7 +1727,7 @@ function refreshGuidedLiveElements({ tickOnly = false } = {}) {
     if (sessionTrack) sessionTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
     if (toggleBtn) setNodeText(toggleBtn, session.isRunning ? t('pause') : t('resume'));
     if (dockStatus) setNodeText(dockStatus, statusLabel);
-    if (dockStep) setNodeText(dockStep, t('currentStep', { name: actionLabel(activeStretch) }));
+    if (dockStep) setNodeText(dockStep, actionLabel(activeStretch));
     if (dockTrack) dockTrack.style.width = `${Math.max(0, Math.min(sessionPercent, 100))}%`;
     if (dockToggleBtn) setNodeText(dockToggleBtn, session.isRunning ? t('pause') : t('resume'));
   }
